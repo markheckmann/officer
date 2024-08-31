@@ -106,6 +106,8 @@ plot_layout_properties <- function (x, layout = NULL, master = NULL, labels = TR
   old_par <- par(mar = c(2, 2, 1.5, 0))
   on.exit(par(old_par))
 
+  get_layout(x, layout = layout, master = master) |> list2env(envir = environment())
+
   dat <- layout_properties(x, layout = layout, master = master)
   if (length(unique(dat$name)) != 1) {
     stop("one single layout need to be choosen")
