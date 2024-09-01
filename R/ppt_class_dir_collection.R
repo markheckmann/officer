@@ -1,4 +1,6 @@
+
 # dir_collection ---------------------------------------------------------
+
 dir_collection <- R6Class(
   "dir_collection",
   public = list(
