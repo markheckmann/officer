@@ -106,9 +106,9 @@ plot_layout_properties <- function (x, layout = NULL, master = NULL, labels = TR
   old_par <- par(mar = c(2, 2, 1.5, 0))
   on.exit(par(old_par))
 
-  get_layout(x, layout = layout, master = master) |> list2env(envir = environment())
+  la <- get_layout(x, layout = layout, master = master)
 
-  dat <- layout_properties(x, layout = layout, master = master)
+  dat <- layout_properties(x, layout = la$layout, master = la$master)
   if (length(unique(dat$name)) != 1) {
     stop("one single layout need to be choosen")
   }
@@ -129,7 +129,7 @@ plot_layout_properties <- function (x, layout = NULL, master = NULL, labels = TR
   }
   plot(x = c(0, w), y = -c(0, h), asp = 1, type = "n", axes = FALSE, xlab = NA, ylab = NA)
   if (title) {
-    title(main = paste("Layout:", layout))
+    title(main = paste("Layout:", la$layout))
   }
   rect(xleft = 0, xright = w, ybottom = 0, ytop = -h, border = "darkgrey")
   rect(xleft = offx, xright = offx + cx, ybottom = -offy, ytop = -(offy +                                                                   cy))

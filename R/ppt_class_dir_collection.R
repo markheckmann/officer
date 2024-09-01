@@ -1,4 +1,6 @@
+
 # dir_collection ---------------------------------------------------------
+
 dir_collection <- R6Class(
   "dir_collection",
   public = list(
@@ -6,8 +8,8 @@ dir_collection <- R6Class(
     initialize = function( package_dir, container ) {
       dir_ <- file.path(package_dir, container$dir_name())
       private$package_dir <- package_dir
-
       filenames <- list.files(path = dir_, pattern = "\\.xml$", full.names = TRUE)
+      filenames <- sort_vec_by_index(filenames)
       private$collection <- lapply( filenames, function(x, container){
         container$clone()$feed(x)
       }, container = container)
