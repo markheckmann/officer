@@ -1,0 +1,81 @@
+---
+title: "SO Anwers"
+output: html_document
+date: "2024-09-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+SO Question: <https://stackoverflow.com/questions/58508859/r-officer-package-how-to-specify-a-certain-placeholder-when-there-are-multiple>
+
+As of yesterday, `{officer}` version `0.6.7` is available on CRAN.
+We introduced several new features that also help handling placeholders (phs) with duplicate labels.
+
+1. Dedupe ph labels using `layout_dedupe_ph_labels()`
+2. Rename ph labels using `layout_rename_ph_labels()`
+3. Reference a ph by `id` using `ph_location_id()`
+4. Reference a ph by `type` + `type_idx` using `ph_location_type()`
+
+The first two options work by renaming ph labels and then referencing them by their label. The latter two reference a ph directly despite duplicate labels. The package also contains the sample file `ph_dupes.pptx` with duplicate placeholder labels. The label `Content 7` exists twice.
+
+```{r}
+library(officer)
+file <- system.file("doc_examples", "ph_dupes.pptx", package = "officer")
+x <- read_pptx(file)
+```
+
+All ph information you need for options 2-4 (`type`, `type_idx`, `id`, `ph_label`) is given by `layout_properties()` or `plot_layout_properties()`. Option 1 does not require additional information.
+
+```{r}
+layout_properties(x, "2-dupes")[, 3:6] # relevant columns only
+```
+The following plot also contains the `type [type_idx]` (blue), the `ph_label` (red), and the `id` (green).
+
+```{r}
+plot_layout_properties(x, "2-dupes")
+```
+
+
+### 1. Dedupe phs using `layout_dedupe_ph_labels()`
+
+After running `layout_dedupe_ph_labels()`, the ph labels are unique and can be referenced using `ph_location_label()`.
+
+```{r}
+layout_dedupe_ph_labels(x, action = "rename")
+layout_properties(x, "2-dupes")[, 3:6]
+```
+
+### 2. Rename duplicated label using `layout_rename_ph_labels()`
+
+`layout_rename_ph_labels()` allows custom renaming of labels. For example, we could rename the two labels from before as follows. Both options generate the same result.
+
+```{r}
+layout_rename_ph_labels(x, "2-dupes", "8" = "New 1", "10" = "New 2") # using id = value pairs
+layout_rename_ph_labels(x, "2-dupes", id = c(8, 10)) <- c("New 1", "New 2") # ids + rhs assignment
+layout_properties(x, "2-dupes")[, 3:6]
+```
+
+
+### 3. Reference phs via their unique id using `ph_location_id()`
+
+Alternatively, you may leave the duplicate labels unchanged and instead reference a ph directly by its `id` (column `id` in output above).
+
+```{r}
+x <- x |> 
+  add_slide("2-dupes", "Master1") |>
+  ph_with("Text 1", ph_location_id(id = 8)) |> 
+  ph_with("Text 2", ph_location_id(id = 10))
+```
+
+### 4. Reference a ph by `type` + `type_idx` using `ph_location_type()`
+
+For each ph `type` (e.g., *body*), there is a running index (`type_idx`) ordered by position (*top -> bottom*, *left-> right*). Combine `type` and `type_idx` uniquely reference a ph in `ph_location_type()`.
+
+```{r}
+x <- x |> 
+  add_slide("2-dupes", "Master1") |>
+  ph_with("Text New 1", ph_location_type(type = "body", type_idx = 1)) |> 
+  ph_with("Text New 1", ph_location_type(type = "body", type_idx = 2)) 
+```
