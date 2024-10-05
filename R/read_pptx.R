@@ -80,6 +80,7 @@ read_table_style <- function(path){
              stringsAsFactors = FALSE )
 }
 
+
 #' @title Write a 'PowerPoint' file.
 #' @description Write a 'PowerPoint' file
 #' with an object of class 'rpptx' (created with
@@ -94,21 +95,30 @@ read_table_style <- function(path){
 #' print(doc, target = file)
 #' @export
 #' @seealso \code{\link{read_pptx}}
-print.rpptx <- function(x, target = NULL, ...){
-
-  if( is.null( target) ){
+print.rpptx <- function(x, target = NULL, overwrite = FALSE, ...) {
+  if (is.null(target)) {
+    # cli::cli_h3("{.cls rpptx} object")
     cat("pptx document with", length(x), "slide(s)\n")
     cat("Available layouts and their associated master(s) are:\n")
-    print(as.data.frame( layout_summary(x)) )
+    print(as.data.frame(layout_summary(x)))
     return(invisible())
   }
 
-  if( !grepl(x = target, pattern = "\\.(pptx)$", ignore.case = TRUE) )
-    stop(target , " should have '.pptx' extension.")
+  if (!grepl(x = target, pattern = "\\.(pptx)$", ignore.case = TRUE)) {
+    stop(target, " should have '.pptx' extension.")
+  }
 
   if (is_windows() && is_doc_open(target)) {
     stop(target, " is open. To write to this document, please, close it.")
   }
+
+  if (!overwrite && file.exists(target)) {
+    cli::cli_abort(c(
+      "File {.val {basename(target)}} already exists",
+      "i" = cli::col_silver("Set {.code overwrite=TRUE} to replace the file.")
+    ))
+  }
+
   x <- pptx_fortify_slides(x)
   x$rel$write(file.path(x$package_dir, "_rels", ".rels"))
 
@@ -123,19 +133,17 @@ print.rpptx <- function(x, target = NULL, ...){
 
   x$presentation$save()
   x$content_type$save()
-
   x$slide$save_slides()
-
   x$notesSlide$save_slides()
 
-  x$core_properties['modified','value'] <- format( Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
-  x$core_properties['lastModifiedBy','value'] <- Sys.getenv("USER")
+  x$core_properties["modified", "value"] <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+  x$core_properties["lastModifiedBy", "value"] <- Sys.getenv("USER")
   write_core_properties(x$core_properties, x$package_dir)
 
-  if(nrow(x$doc_properties_custom$data) >0 ){
+  if (nrow(x$doc_properties_custom$data) > 0) {
     write_custom_properties(x$doc_properties_custom, x$package_dir)
   }
 
-  invisible(pack_folder(folder = x$package_dir, target = target ))
+  invisible(pack_folder(folder = x$package_dir, target = target))
 }
 
