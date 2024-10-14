@@ -12,7 +12,7 @@ x <- ph_with(x, "Full size", location = ph_location_fullsize())
 
 x <- ph_with(x, "A title", location = "Title 1") # use ph_label
 x <- ph_with(x, "A subtitle", location = 3) # use ph id
-x <- ph_with(x, "A A date", location = "dt[1]")  # use type[type_idx]
+x <- ph_with(x, "A date", location = "dt [1]")  # use type[type_idx]
 x <- ph_with(x, "A left text", location = "left")
 x <- ph_with(x, "A right text", location = "right")
 x <- ph_with(x, "Full size", location = "fullsize")
