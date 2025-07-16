@@ -6,6 +6,11 @@
 - Function `set_doc_properties()` now supports NULL and NA custom properties in 
 a Word document.
 
+## Internals
+
+- All `fortify_location.*` methods now return a `location_fortified` object. The object now consistently have the 
+  entries `ph_id`, `type`, `type_idx`, `location_class`. This information is sometimes needed downstream.
+
 # officer 0.6.10
 
 ## Issues

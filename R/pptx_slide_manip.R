@@ -246,7 +246,7 @@ pptx_fortify_slides <- function(x) {
 #' @keywords internal
 shape_properties_tags <- function(left = 0, top = 0, width = 3, height = 3,
                                   bg = "transparent", rot = 0, label = "", ph = "<p:ph/>",
-                                  ln = sp_line(lwd = 0, linecmpd = "solid", lineend = "rnd"), geom = NULL) {
+                                  ln = sp_line(lwd = 0, lty = "solid", lineend = "rnd"), geom = NULL) {
   if (!is.null(bg) && !is.color(bg)) {
     stop("bg must be a valid color.", call. = FALSE)
   }

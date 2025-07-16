@@ -13,7 +13,7 @@ shape_properties_tags(
   rot = 0,
   label = "",
   ph = "<p:ph/>",
-  ln = sp_line(lwd = 0, linecmpd = "solid", lineend = "rnd"),
+  ln = sp_line(lwd = 0, lty = "solid", lineend = "rnd"),
   geom = NULL
 )
 }

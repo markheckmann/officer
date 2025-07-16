@@ -2,8 +2,10 @@ props_to_ph_location <- function(props) {
   if (nrow(props) > 1) {
     cli::cli_alert_warning("More than one placeholder selected.")
   }
-  props <- props[, c("offx", "offy", "cx", "cy", "ph_label", "ph", "type", "fld_id", "fld_type", "rotation")]
-  names(props) <- c("left", "top", "width", "height", "ph_label", "ph", "type", "fld_id", "fld_type", "rotation")
+  props <- props[, c("offx", "offy", "cx", "cy", "ph_label", "ph", "type", "type_idx",
+                     "fld_id", "fld_type", "rotation", "id")]
+  names(props) <- c("left", "top", "width", "height", "ph_label", "ph", "type", "type_idx",
+                    "fld_id", "fld_type", "rotation", "ph_id")
   as_ph_location(props)
 }
 
@@ -103,7 +105,7 @@ as_ph_location <- function(x, ...) {
     )
   }
   ref_names <- c(
-    "width", "height", "left", "top", "ph_label", "ph", "type", "rotation", "fld_id", "fld_type"
+    "width", "height", "left", "top", "ph_label", "ph", "ph_id", "type", "type_idx", "rotation", "fld_id", "fld_type"
   )
   if (!all(is.element(ref_names, names(x)))) {
     stop("missing column values:", paste0(setdiff(ref_names, names(x)), collapse = ","))
@@ -141,6 +143,18 @@ is_ph_location <- function(x) {
 fortify_location <- function(x, doc, ...) {
   UseMethod("fortify_location")
 }
+
+
+#' @export
+#' @keywords internal
+print.location_fortified <- function(x, ...) {
+  cli::cli_h3("<location_fortified>")
+  order <- c("left", "top", "width", "height", "ph_label", "ph", "ph_id", "type", "type_idx", "fld_type", "fld_id",
+             "bg", "rotation", "ln", "geom", "location_class")  # keep plotting order constant
+  ii <- stats::na.omit(match(order, names(x)))  # show existing names only
+  utils::str(x[ii], give.attr = FALSE, max.level = 1)
+}
+
 
 # _________________ ----
 # main ----
@@ -214,7 +228,11 @@ ph_location <- function(left = 1, top = 1, width = 4, height = 3,
 #' @export
 fortify_location.location_manual <- function(x, doc, ...) {
   x$location_class = "location_manual"
-  unclass(x)
+  x$ph_id = NA_integer_
+  x$type = NA_character_
+  x$type_idx = NA_integer_
+  class(x) <- "location_fortified"
+  x
 }
 
 
@@ -275,7 +293,7 @@ fortify_location.location_template <- function(x, doc, ...) {
   x$ph <- ph
   x <- fortify_location.location_manual(x)
   x$location_class = "location_template"
-  unclass(x)
+  x
 }
 
 
@@ -391,6 +409,7 @@ fortify_location.location_type <- function(x, doc, ...) {
     out$ph_label <- x$label
   }
   out$location_class = "location_type"
+  class(out) <- "location_fortified"
   out
 }
 
@@ -467,14 +486,15 @@ fortify_location.location_label <- function(x, doc, ...) {
     ), call = NULL)
   }
 
-  props <- props[, c("offx", "offy", "cx", "cy", "ph_label", "ph", "type", "rotation", "fld_id", "fld_type")]
-  names(props) <- c("left", "top", "width", "height", "ph_label", "ph", "type", "rotation", "fld_id", "fld_type")
+  props <- props[, c("offx", "offy", "cx", "cy", "ph_label", "ph", "type", "type_idx", "rotation", "fld_id", "fld_type", "id")]
+  names(props) <- c("left", "top", "width", "height", "ph_label", "ph", "type", "type_idx", "rotation", "fld_id", "fld_type", "ph_id")
   row.names(props) <- NULL
   out <- as_ph_location(props)
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
   out$location_class = "location_label"
+  class(out) <- "location_fortified"
   out
 }
 
@@ -508,12 +528,14 @@ fortify_location.location_fullsize <- function(x, doc, ...) {
   }
   layout_data$ph <- NA_character_
   layout_data$type <- "body"
+  layout_data$type_idx <- NA_integer_
   layout_data$rotation <- 0L
   layout_data$fld_id <- NA_character_
   layout_data$fld_type <- NA_character_
-
+  layout_data$ph_id <- NA_integer_
   loc <- as_ph_location(as.data.frame(layout_data, stringsAsFactors = FALSE))
   loc$location_class <- "location_fullsize"
+  class(loc) <- "location_fortified"
   loc
 }
 
@@ -557,6 +579,8 @@ fortify_location.location_left <- function(x, doc, ...) {
     out$ph_label <- x$label
   }
   out$location_class <- "location_left"
+  out$ph_id <- NA_integer_
+  class(out) <- "location_fortified"
   out
 }
 
@@ -600,6 +624,8 @@ fortify_location.location_right <- function(x, doc, ...) {
     out$ph_label <- x$label
   }
   out$location_class <- "location_right"
+  out$ph_id <- NA_integer_
+  class(out) <- "location_fortified"
   out
 }
 
@@ -684,8 +710,10 @@ fortify_location.location_id <- function(x, doc, ...) {
     out$ph_label <- x$label
   }
   out$location_class <- "location_id"
+  class(out) <- "location_fortified"
   out
 }
+
 
 # _________________ ----
 # resolve ----
