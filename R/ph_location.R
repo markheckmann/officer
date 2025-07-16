@@ -213,8 +213,10 @@ ph_location <- function(left = 1, top = 1, width = 4, height = 3,
 
 #' @export
 fortify_location.location_manual <- function(x, doc, ...) {
-  x
+  x$location_class = "location_manual"
+  unclass(x)
 }
+
 
 #' @title Location for a placeholder based on a template
 #' @description The function will return a list that complies with
@@ -256,6 +258,8 @@ ph_location_template <- function(left = 1, top = 1, width = 4, height = 3,
   class(x) <- c("location_template", "location_str")
   x
 }
+
+
 #' @export
 fortify_location.location_template <- function(x, doc, ...) {
   slide <- doc$slide$get_slide(doc$cursor)
@@ -269,7 +273,9 @@ fortify_location.location_template <- function(x, doc, ...) {
     label = x$ph_label
   )
   x$ph <- ph
-  fortify_location.location_manual(x)
+  x <- fortify_location.location_manual(x)
+  x$location_class = "location_template"
+  unclass(x)
 }
 
 
@@ -384,6 +390,7 @@ fortify_location.location_type <- function(x, doc, ...) {
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
+  out$location_class = "location_type"
   out
 }
 
@@ -467,6 +474,7 @@ fortify_location.location_label <- function(x, doc, ...) {
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
+  out$location_class = "location_label"
   out
 }
 
@@ -489,6 +497,7 @@ ph_location_fullsize <- function(newlabel = "", ...) {
   x
 }
 
+
 #' @export
 fortify_location.location_fullsize <- function(x, doc, ...) {
   layout_data <- slide_size(doc)
@@ -503,8 +512,11 @@ fortify_location.location_fullsize <- function(x, doc, ...) {
   layout_data$fld_id <- NA_character_
   layout_data$fld_type <- NA_character_
 
-  as_ph_location(as.data.frame(layout_data, stringsAsFactors = FALSE))
+  loc <- as_ph_location(as.data.frame(layout_data, stringsAsFactors = FALSE))
+  loc$location_class <- "location_fullsize"
+  loc
 }
+
 
 #' @export
 #' @title Location of a left body element
@@ -528,6 +540,7 @@ ph_location_left <- function(newlabel = NULL, ...) {
   x
 }
 
+
 #' @export
 fortify_location.location_left <- function(x, doc, ...) {
   slide <- doc$slide$get_slide(doc$cursor)
@@ -543,6 +556,7 @@ fortify_location.location_left <- function(x, doc, ...) {
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
+  out$location_class <- "location_left"
   out
 }
 
@@ -585,6 +599,7 @@ fortify_location.location_right <- function(x, doc, ...) {
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
+  out$location_class <- "location_right"
   out
 }
 
@@ -668,6 +683,7 @@ fortify_location.location_id <- function(x, doc, ...) {
   if (!is.null(x$label)) {
     out$ph_label <- x$label
   }
+  out$location_class <- "location_id"
   out
 }
 
