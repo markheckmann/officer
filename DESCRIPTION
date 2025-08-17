@@ -101,6 +101,7 @@ Collate:
     'ppt_ph_manipulate.R'
     'ppt_ph_rename_layout.R'
     'ppt_ph_with_methods.R'
+    'ppt_ph_annotate.R'
     'pptx_informations.R'
     'pptx_layout_helper.R'
     'pptx_matrix.R'

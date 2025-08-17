@@ -591,3 +591,57 @@ is_integerish <- function(x) {
 `%||%` <- function(l, r) {
   if (is.null(l)) r else l
 }
+
+
+# code from tools::file_ext
+file_ext <- function (x) {
+  pos <- regexpr("\\.([[:alnum:]]+)$", x)
+  ifelse(pos > -1L, substring(x, pos + 1L), "")
+}
+
+
+# Mini versions  -------------------------------------------------
+
+#
+# name <- "Alice"
+# x     <- 3.14
+# mini_glue("Hello, {name}!  x ≈ {round(x, 1)}")
+# #> "Hello, Alice!  x ≈ 3.1"
+#
+# # multiple strings at once
+# mini_glue(c("a = {1+1}", "today is '{Sys.Date()}'"))
+# #> c("a = 2", "today is 2025-06-23")
+# #>
+mini_glue <- function(x, ..., .envir = parent.frame()) {
+  # x: character vector of template strings
+  # ...: named values to inject
+  # .envir: fallback environment for evaluation
+
+  # coerce to character
+  x <- as.character(x)
+  # collect named args and build a child env
+  args <- list(...)
+  eval_env <- list2env(args, parent = .envir)
+
+  # regex for {expr}
+  pat <- "\\{([^{}]+)\\}"
+
+  sapply(x, function(str) {
+    # find all "{…}" in this string
+    locs    <- gregexpr(pat, str, perl = TRUE)
+    matches <- regmatches(str, locs)[[1]]
+
+    if (length(matches) == 0) return(str)
+
+    # eval each match inside eval_env
+    replacements <- vapply(matches, function(m) {
+      expr_text <- sub("^\\{([^{}]+)\\}$", "\\1", m)
+      val <- eval(parse(text = expr_text), envir = eval_env)
+      paste(val, collapse = " ")
+    }, character(1))
+
+    # do the substitution
+    regmatches(str, locs) <- list(replacements)
+    str
+  }, USE.NAMES = FALSE)
+}
