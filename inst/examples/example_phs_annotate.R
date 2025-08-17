@@ -13,7 +13,7 @@ x <- add_slide(x, "Title and Content")
 x <- phs_annotate(x, "sldNum", "body", .slide_idx = 3:4, .font_color = NA) # default color and size
 
 print(x, file_pptx)
-# browseUR(file_pptx)  # may not work on all systems
+# browseURL(file_pptx)  # may not work on all systems
 
 x <- annotate_layouts()
 print(x, file_pptx)
