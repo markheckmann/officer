@@ -213,6 +213,8 @@ ph_with.character <- function(x, value, location, ...) {
   slide <- x$slide$get_slide(x$cursor)
 
   location <- fortify_location(location, doc = x)
+  location <- update_location_from_dots(location, ...)
+
   new_ph <- shape_properties_tags(
     left = location$left, top = location$top,
     width = location$width, height = location$height,
@@ -233,6 +235,7 @@ ph_with.character <- function(x, value, location, ...) {
   xml_add_child(xml_find_first(slide$get(), "//p:spTree"), node)
   x
 }
+
 
 #' @export
 #' @param format_fun format function for non character vectors
@@ -721,5 +724,42 @@ phs_with <- function(x, ..., .dots = NULL, .slide_idx = NULL) {
     }
   }
   x$cursor <- .old_cursor
+  x
+}
+
+
+# HELPERS -------
+
+# convert to <sp_line> if character
+cast_to_sp_line <- function(x) {
+  if (is.null(x) || inherits(x, "sp_line") || is.na(x)) {
+    return(x)
+  }
+  if (is.character(x)) {
+    return(sp_line(color = x))
+  }
+  cli::cli_abort(c(
+    "Unkown input for {.val ln}: {.val x}",
+    "x" = "Must be character or an {.cls sp_line} object"))
+}
+
+
+update_location_from_dots <- function(x, ...) {
+  dots <- list(...)
+  if (length(dots) == 0) {
+    return(x)
+  }
+  allowed <- c("left", "top", "width", "height", "ph_label", "ln", "bg", "rotation", "geom")
+  arg_nms <- names(dots)
+  ii <- pmatch(arg_nms, allowed)
+  ii_na <- is.na(ii)
+  if (any(ii_na)) {
+    cli::cli_abort(
+      c("Arg{?s} passed via ... could not be matched (unambigously): {.val {arg_nms[ii_na]}}",
+        "x"="Known args are: {.val {allowed}}"), call = NULL)
+  }
+  names(dots)  <- allowed[ii]
+  x <- modifyList(x, dots)
+  x$ln <- cast_to_sp_line(x$ln)
   x
 }
