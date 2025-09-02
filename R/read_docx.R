@@ -1,6 +1,6 @@
 #' @export
 #' @title Create a 'Word' document object
-#' @description read and import a docx file as an R object
+#' @description Read and import a docx file as an R object
 #' representing the document. When no file is specified, it
 #' uses a default empty file.
 #'
@@ -83,10 +83,11 @@ read_docx <- function(path = NULL) {
   obj$doc_properties_custom <- read_custom_properties(package_dir)
   obj$doc_properties <- read_core_properties(package_dir)
   obj$content_type <- content_type$new(package_dir)
-  obj$doc_obj <- docx_part$new(package_dir,
-                               main_file = "document.xml",
-                               cursor = "/w:document/w:body/*[1]",
-                               body_xpath = "/w:document/w:body"
+  obj$doc_obj <- body_part$new(
+    package_dir,
+    main_file = "document.xml",
+    cursor = "/w:document/w:body/*[1]",
+    body_xpath = "/w:document/w:body"
   )
   obj$styles <- read_docx_styles(package_dir)
   obj$officer_cursor <- officer_cursor(obj$doc_obj$get())
@@ -122,10 +123,11 @@ read_docx <- function(path = NULL) {
     )
   }
 
-  obj$footnotes <- docx_part$new(
+  obj$footnotes <- footnotes_part$new(
     package_dir,
     main_file = "footnotes.xml",
-    cursor = "/w:footnotes/*[last()]", body_xpath = "/w:footnotes"
+    cursor = "/w:footnotes/*[last()]",
+    body_xpath = "/w:footnotes"
   )
 
   default_refs <- obj$styles[obj$styles$is_default, ]
@@ -146,7 +148,7 @@ read_docx <- function(path = NULL) {
 #' @param target path to the docx file to write
 #' @param copy_header_refs,copy_footer_refs logical, default is FALSE.
 #' If TRUE, copy the references to the header and footer in each section
-#' of the body of the document. This parameter is experimental and my change
+#' of the body of the document. This parameter is experimental and may change
 #' in a future version.
 #' @param preview Save `x` to a temporary file and open it (default `FALSE`).
 #' @param ... unused
@@ -323,7 +325,7 @@ print.rdocx <- function(x, target = NULL, copy_header_refs = FALSE,
 
 #' @export
 #' @title Number of blocks inside an rdocx object
-#' @description return the number of blocks inside an rdocx object.
+#' @description Return the number of blocks inside an rdocx object.
 #' This number also include the default section definition of a
 #' Word document - default Word section is an uninvisible element.
 #' @param x an rdocx object
@@ -338,7 +340,7 @@ length.rdocx <- function( x ){
 
 #' @export
 #' @title Read 'Word' styles
-#' @description read Word styles and get results in
+#' @description Read Word styles and get results in
 #' a data.frame.
 #' @param x an rdocx object
 #' @param type,is_default subsets for types (i.e. paragraph) and

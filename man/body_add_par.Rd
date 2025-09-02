@@ -17,7 +17,7 @@ body_add_par(x, value, style = NULL, pos = "after")
 one of "after", "before", "on".}
 }
 \description{
-add a paragraph of text into an rdocx object
+Add a paragraph of text into an rdocx object
 }
 \examples{
 doc <- read_docx()
@@ -39,6 +39,7 @@ Other functions for adding content:
 \code{\link{body_add_plot}()},
 \code{\link{body_add_table}()},
 \code{\link{body_add_toc}()},
-\code{\link{body_append_start_context}()}
+\code{\link{body_append_start_context}()},
+\code{\link{body_import_docx}()}
 }
 \concept{functions for adding content}
