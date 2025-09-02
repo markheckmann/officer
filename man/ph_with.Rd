@@ -6,6 +6,7 @@
 \alias{ph_with.numeric}
 \alias{ph_with.factor}
 \alias{ph_with.logical}
+\alias{ph_with.Date}
 \alias{ph_with.block_list}
 \alias{ph_with.unordered_list}
 \alias{ph_with.data.frame}
@@ -26,6 +27,8 @@ ph_with.numeric(x, value, location, format_fun = format, ...)
 ph_with.factor(x, value, location, ...)
 
 ph_with.logical(x, value, location, format_fun = format, ...)
+
+ph_with.Date(x, value, location, date_format = NULL, ...)
 
 ph_with.block_list(x, value, location, level_list = integer(0), ...)
 
@@ -69,9 +72,13 @@ short forms can be used, as listed in section \code{"Short forms"}.}
 
 \item{...}{further arguments passed to or from other methods. When
 adding a \code{ggplot} object or \code{plot_instr}, these arguments will be used
-by png function.}
+by the png function.}
 
 \item{format_fun}{format function for non character vectors}
+
+\item{date_format}{A format string for dates (default \code{"\%Y-\%m-\%d"}).
+See \code{format} arg in \code{\link[=strftime]{strftime()}} for details.
+Set a global default via \code{options(officer.date_format = ...)}.}
 
 \item{level_list}{The list of levels for hierarchy structure as integer values.
 If used the object is formated as an unordered list. If 1 and 2,
@@ -95,7 +102,7 @@ an alt text added with \code{ggplot2::labs(alt = ...)} will be used if any.}
 be used.}
 }
 \description{
-add object into a new shape in the current slide. This
+add an object into a new shape in the current slide. This
 function is able to add all supported outputs to a presentation. See
 section \strong{Methods (by class)} to see supported outputs.
 }
@@ -111,6 +118,9 @@ added as paragraphs.
 \item \code{ph_with.factor()}: add a factor vector to a new shape on the
 current slide, values will be be converted as character and then
 added as paragraphs.
+
+\item \code{ph_with.Date()}: add a \code{Date} object vector to a new shape on the
+current slide, values will be be first converted to character.
 
 \item \code{ph_with.block_list()}: add a \code{\link[=block_list]{block_list()}} made
 of \code{\link[=fpar]{fpar()}} to a new shape on the current slide.
@@ -176,6 +186,7 @@ fileout <- tempfile(fileext = ".pptx")
 
 doc_1 <- read_pptx()
 sz <- slide_size(doc_1)
+
 # add text and a table ----
 doc_1 <- add_slide(doc_1, layout = "Two Content", master = "Office Theme")
 doc_1 <- ph_with(
@@ -189,6 +200,10 @@ doc_1 <- ph_with(
 doc_1 <- ph_with(
   x = doc_1, value = cars,
   location = ph_location_right()
+)
+doc_1 <- ph_with(
+  x = doc_1, value = Sys.Date(),
+  location = ph_location_type("dt")
 )
 
 # add a base plot ----
@@ -311,22 +326,21 @@ doc_1 <- ph_with(
 print(doc_1, target = fileout)
 
 
-# Example using short form locations ----
+# Example using short-form locations ----
 x <- read_pptx()
 x <- add_slide(x, "Title Slide")
 x <- ph_with(x, "A title", "Title 1")        # label
 x <- ph_with(x, "A subtitle", 3)             # id
 x <- ph_with(x, "A left text", "left")       # keyword
-x <- ph_with(x, "A date", "dt[1]")           # type + index
-x <- ph_with(x, "More content", c(5,.5,9,2)) # numeric vector
-file <- tempfile(fileext = ".pptx")
-print(x, file)
-# browseURL(file)  # opens file on some systems
-
+x <- ph_with(x, Sys.Date(), "dt[1]")         # type + index
+x <- ph_with(x, "More content", c(5,.5,5,2)) # numeric vector (left, top, width, heigh)
+\dontrun{
+print(x, preview = TRUE) # opens file locally
+}
 }
 \seealso{
 Specify placeholder locations with \link{ph_location_type}, \link{ph_location},
 \link{ph_location_label}, \link{ph_location_left}, \link{ph_location_right},
 \link{ph_location_fullsize}, \link{ph_location_template}. \link{phs_with} is a sibling of
-\code{ph_with} that fills mutiple placeholders at once.
+\code{ph_with} that fills multiple placeholders at once. Use \link{add_slide} to add new slides.
 }
