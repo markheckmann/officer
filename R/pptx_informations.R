@@ -232,7 +232,7 @@ plot_layout_properties <- function(x, layout = NULL, master = NULL, slide_idx = 
 #' # annotate_base(path = 'mydoc.pptx', output_file='mydoc_annotate.pptx')
 #'
 #' @family functions for reading presentation information
-annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx' ){
+annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx', ...){
   ppt <- read_pptx(path=path)
   while(length(ppt)>0){
     ppt <- remove_slide(ppt, 1)
@@ -251,20 +251,23 @@ annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx' ){
     # Adding a slide for the current layout
     ppt <- add_slide(x=ppt, layout = layout, master = master)
     size <- slide_size(ppt)
-    fpar_ <- fpar(sprintf('layout ="%s", master = "%s"', layout, master),
-                  fp_t = fp_text(color = "orange", font.size = 20),
-                  fp_p = fp_par(text.align = "right", padding = 5)
+    fpar_ <- fpar(sprintf('layout ="%s" [master = "%s]"', layout, master),
+                  fp_t = fp_text(color = "orange", font.size = 15),
+                  fp_p = fp_par(text.align = "center", padding = 0)
     )
-    ppt <- ph_with(x = ppt, value = fpar_, ph_label = "layout_ph",
-                   location = ph_location(left = 0, top = -0.5, width = size$width, height = 1,
-                                          bg = "transparent", newlabel = "layout_ph"))
+    loc <- ph_location(left = 0, top = 0, width = size$width, height = .29,
+                       bg = "transparent", newlabel = "layout_and_master")
+    ppt <- ph_with(x = ppt, value = fpar_, ph_label = "layout_and_master", location = loc, ln = "grey")
 
     # Blank slides have nothing
     if(length(lp[,1] > 0)){
       # Now we go through each placholder
-      for(pidx in seq_len(nrow(lp))){
-        textstr <- paste("type=", lp$type[pidx], ", index=", lp$id[pidx], ", ph_label=",lp$ph_label[pidx])
-        ppt <- ph_with(x=ppt,  value = textstr, location = ph_location_label(type = lp$type[pidx], ph_label = lp$ph_label[pidx]))
+      for (pidx in seq_len(nrow(lp))){
+        textstr <- paste("type=", lp$type[pidx],
+                         ", index=", lp$id[pidx],
+                         ", ph_label=",lp$ph_label[pidx])
+        loc <- ph_location_label(type = lp$type[pidx], ph_label = lp$ph_label[pidx], ...)
+        ppt <- ph_with(x = ppt,  value = textstr, location = loc)
       }
     }
   }

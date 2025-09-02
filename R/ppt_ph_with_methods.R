@@ -201,7 +201,7 @@ ph_with <- function(x, value, location, ...) {
 }
 
 
-.ph_with <- function(x, value, location, ...) {
+.ph_with <- function(x, value, location, ..., .dots = NULL) {
   UseMethod("ph_with", value)
 }
 
@@ -209,11 +209,11 @@ ph_with <- function(x, value, location, ...) {
 #' @export
 #' @describeIn ph_with add a character vector to a new shape on the
 #' current slide, values will be added as paragraphs.
-ph_with.character <- function(x, value, location, ...) {
+ph_with.character <- function(x, value, location, ..., .dots = NULL) {
   slide <- x$slide$get_slide(x$cursor)
 
   location <- fortify_location(location, doc = x)
-  location <- update_location_from_dots(location, ...)
+  location <- update_location_from_dots(location, ..., .dots = .dots)
 
   new_ph <- shape_properties_tags(
     left = location$left, top = location$top,
@@ -744,7 +744,36 @@ cast_to_sp_line <- function(x) {
 }
 
 
-update_location_from_dots <- function(x, ...) {
+update_location_from_dots <- function(x, ..., .dots = NULL) {
+  dots <- modifyList(list(...), .dots %||% list())
+  if (length(dots) == 0) {
+    return(x)
+  }
+  allowed <- c("left", "top", "width", "height", "ph_label", "ln", "bg", "rotation", "geom")
+  arg_nms <- names(dots)
+  ii <- pmatch(arg_nms, allowed)
+  ii_na <- is.na(ii)
+  if (any(ii_na)) {
+    cli::cli_abort(
+      c("Arg{?s} passed via ... could not be matched (unambigously): {.val {arg_nms[ii_na]}}",
+        "x"="Known args are: {.val {allowed}}"), call = NULL)
+  }
+  names(dots)  <- allowed[ii]
+  x <- modifyList(x, dots)
+  x$ln <- cast_to_sp_line(x$ln)
+  x
+}
+
+
+update_location_from_dots_enquo <- function(x, ...) {
+  ex <- enquos_base(...)
+  loc_env <- as.environment(x)
+  parent.env(loc_env) <- parent.frame()
+  eval(ex[[2]], envir = loc_env)
+
+  eval(ex[[2]], envir = x)
+
+  browser()
   dots <- list(...)
   if (length(dots) == 0) {
     return(x)
