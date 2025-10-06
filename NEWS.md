@@ -2,6 +2,7 @@
 
 ## Issues
 
+- WIP: phs_annotate() (#682)
 - Fix RTF sections that were sometimes invisible
 - issue with image in google docs should now be fixed (#689)
 

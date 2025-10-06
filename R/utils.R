@@ -644,6 +644,7 @@ mini_glue <- function(x, ..., .envir = parent.frame()) {
     regmatches(str, locs) <- list(replacements)
     str
   }, USE.NAMES = FALSE)
+}
 
 
 # file ops  ------------------------------------------
