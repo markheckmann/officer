@@ -13,7 +13,7 @@ It also supports the writing of 'RTF' documents.
 Examples of usage are:
 \itemize{
 \item Create Word documents with tables, titles, TOC and graphics
-\item Importation of Word and PowerPoint files into data objects
+\item Import Word and PowerPoint files into data objects
 \item Write updated content back to a PowerPoint presentation
 \item Clinical reporting automation
 \item Production of reports from a shiny application

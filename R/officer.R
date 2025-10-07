@@ -8,7 +8,7 @@
 #' Examples of usage are:
 #'
 #' * Create Word documents with tables, titles, TOC and graphics
-#' * Importation of Word and PowerPoint files into data objects
+#' * Import Word and PowerPoint files into data objects
 #' * Write updated content back to a PowerPoint presentation
 #' * Clinical reporting automation
 #' * Production of reports from a shiny application
