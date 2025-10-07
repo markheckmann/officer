@@ -10,45 +10,36 @@ phs_annotate(
   .slide_idx = NULL,
   .font_size = NA,
   .font_color = NA,
-  .bg = NA,
-  .line = sp_line(lwd = 1, color = "grey", lty = "dash"),
   .keys = TRUE,
-  .z_position = "front",
-  .inform = TRUE
+  .bg = NA,
+  .line = sp_line(lwd = 1, color = "grey", lty = "dash")
 )
 }
 \arguments{
 \item{x}{A \code{rpptx} object.}
 
-\item{...}{Placeholders to annotate. Either short form location syntax (see \code{\link[=phs_with]{phs_with()}} for details) or a
+\item{...}{Subset of phs to annotate (optional). Either short form location syntax (see \code{\link[=phs_with]{phs_with()}} for details) or a
 \code{\link[=ph_location]{ph_location()}} object.}
 
 \item{.slide_idx}{Indexes of slides to process. Default (\code{NULL}) is the current slide. Use \code{"all"} to process all
 slides.}
 
-\item{.font_size}{Named vector with font sizes for \code{labels}, \code{type}, and \code{id}. A single numeric
-value will apply to all three parameters. Matching by position and partial name matching is supported. \code{NA} will
-use the  ph's default font size.}
+\item{.font_size}{Font size. \code{NA} (default) is the ph's default font size. Use a named vector of
+length 3 for different font sizes (e.g. \code{c(label = 10, type = NA, id = 15)}). Set \code{0} to omit}
 
-\item{.font_color}{Named vector of font colors for \code{labels}, \code{type}, and \code{id}. Default is \code{c(label = "red", type = "blue", id = "darkgreen")}.  A single numeric value will apply to all three parameters. Matching by position and
-partial name matching is supported. \code{NA} will use the  ph's default color.}
+\item{.font_color}{Font color(s). \code{NA} (default) is the ph's default color. Use a named vector of
+length 3 for different colors (e.g. \code{c(label = "red", type = "blue", id = "darkgreen")}).}
+
+\item{.keys}{Add keys to info (\verb{id=, type=, label=}) (default is \code{TRUE}).}
 
 \item{.bg}{Background color as hex value or valid R color.}
 
 \item{.line}{Line around placeholder. Either a \code{\link[=sp_line]{sp_line()}} or a single color value (hex or valid R color).}
-
-\item{.keys}{Add keys to info (\verb{id=, type=, label=}) (default is \code{TRUE}).}
-
-\item{.z_position}{Place boxes in the \code{"back"} (default) or \code{"front"}. Only relevant if ph has already been filled.}
-
-\item{.inform}{Inform if a placeholder from \code{...} was not found.}
 }
 \description{
-Draws a box with ph info (type, label, and id) at one or more placeholder position. While \code{\link[=plot_layout_properties]{plot_layout_properties()}}
-generates an image of the slide layout, \code{\link[=phs_annotate]{phs_annotate()}} modifies the presentation object.
-}
-\details{
-Throws a warning if one or more phs cannot be found.
+Draws a box with ph info (type + type index, label, and id) at one or more placeholders. While
+\code{\link[=plot_layout_properties]{plot_layout_properties()}} generates an image of the slide layout, \code{\link[=phs_annotate]{phs_annotate()}} modifies the presentation
+object.
 }
 \examples{
 # Annotate all placeholders on current slide
@@ -79,11 +70,19 @@ x <- phs_annotate(x, "dt", "ftr", .slide_idx = 2:3) # only types "dt" and "ftr" 
 print(x, preview = TRUE)}
 
 
-# Modify ph appearance (usually not needed)
+# Modify ph appearance (usually not needed) -------
+
+## Show label only
 x <- read_pptx()
 x <- add_slide(x, "Title Slide")
-x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .font_size = 12,
-                  .bg = "#ff000010", .line = NA)
+x <- phs_annotate(x, .font_size = c(type = 0, id = 0), .keys = FALSE)
+\dontrun{
+print(x, preview = TRUE)}
+
+## Modify colors and box
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .bg = "#ff000010", .line = NA)
 \dontrun{
 print(x, preview = TRUE)}
 }

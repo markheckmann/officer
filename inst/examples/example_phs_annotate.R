@@ -26,10 +26,18 @@ x <- phs_annotate(x, "dt", "ftr", .slide_idx = 2:3) # only types "dt" and "ftr" 
 print(x, preview = TRUE)}
 
 
-# Modify ph appearance (usually not needed)
+# Modify ph appearance (usually not needed) -------
+
+## Show label only
 x <- read_pptx()
 x <- add_slide(x, "Title Slide")
-x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .font_size = 12,
-                  .bg = "#ff000010", .line = NA)
+x <- phs_annotate(x, .font_size = c(type = 0, id = 0), .keys = FALSE)
+\dontrun{
+print(x, preview = TRUE)}
+
+## Modify colors and box
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .bg = "#ff000010", .line = NA)
 \dontrun{
 print(x, preview = TRUE)}
