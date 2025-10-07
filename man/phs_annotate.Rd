@@ -8,12 +8,12 @@ phs_annotate(
   x,
   ...,
   .slide_idx = NULL,
-  .font_size = 12,
-  .font_color = c(label = "red", type = "blue", id = "darkgreen"),
-  .bg = "#0000FF10",
-  .line = sp_line(lwd = 1, color = "blue", lty = "dash"),
+  .font_size = NA,
+  .font_color = NA,
+  .bg = NA,
+  .line = sp_line(lwd = 1, color = "grey", lty = "dash"),
   .keys = TRUE,
-  .z_position = "back",
+  .z_position = "front",
   .inform = TRUE
 )
 }
@@ -23,10 +23,10 @@ phs_annotate(
 \item{...}{Placeholders to annotate. Either short form location syntax (see \code{\link[=phs_with]{phs_with()}} for details) or a
 \code{\link[=ph_location]{ph_location()}} object.}
 
-\item{.slide_idx}{Indexes of slides to process. Default (\code{NULL}) is the current slide. \code{"all"} will process all
+\item{.slide_idx}{Indexes of slides to process. Default (\code{NULL}) is the current slide. Use \code{"all"} to process all
 slides.}
 
-\item{.font_size}{Named vector with font sizes for \code{labels}, \code{type}, and \code{id}. Default is \code{12}. A single numeric
+\item{.font_size}{Named vector with font sizes for \code{labels}, \code{type}, and \code{id}. A single numeric
 value will apply to all three parameters. Matching by position and partial name matching is supported. \code{NA} will
 use the  ph's default font size.}
 
@@ -39,9 +39,9 @@ partial name matching is supported. \code{NA} will use the  ph's default color.}
 
 \item{.keys}{Add keys to info (\verb{id=, type=, label=}) (default is \code{TRUE}).}
 
-\item{.z_position}{Place boxes in the \code{"back"} (default) or \code{"front"}.}
+\item{.z_position}{Place boxes in the \code{"back"} (default) or \code{"front"}. Only relevant if ph has already been filled.}
 
-\item{.inform}{Inform if a placeholder in \link{...} was not found.}
+\item{.inform}{Inform if a placeholder from \code{...} was not found.}
 }
 \description{
 Draws a box with ph info (type, label, and id) at one or more placeholder position. While \code{\link[=plot_layout_properties]{plot_layout_properties()}}
@@ -51,27 +51,55 @@ generates an image of the slide layout, \code{\link[=phs_annotate]{phs_annotate(
 Throws a warning if one or more phs cannot be found.
 }
 \examples{
-file_pptx <- tempfile(fileext = ".pptx")
-
+# Annotate all placeholders on current slide
 x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x)
+\dontrun{
+print(x, preview = TRUE)}
 
-x <- add_slide(x, "Title Slide", ctrTitle = "My Title")
-x <- phs_annotate(x) # annotate all phs on current slide
 
-x <- add_slide(x, "Title and Content", body = plot_instr(plot(0:10)))
-x <- phs_annotate(x, "dt", "Title 1") # annotate phs with tyope dt and label "Title 1
-
+# Annotate all placeholders on all slides
+x <- read_pptx()
 x <- add_slide(x, "Title and Content")
+x <- add_slide(x, "Two Content")
+x <- phs_annotate(x, .slide_idx = "all") # annotate all slides
+\dontrun{
+print(x, preview = TRUE)}
+
+
+# Annotate some placeholders only
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, "Title 1") # annotate phs with label "Title 1" only
 x <- add_slide(x, "Title and Content")
-x <- phs_annotate(x, "sldNum", "body", .slide_idx = 3:4, .font_color = NA) # default color and size
+x <- add_slide(x, "Two Content")
+x <- phs_annotate(x, "dt", "ftr", .slide_idx = 2:3) # only types "dt" and "ftr" on slides 2 and 3
+\dontrun{
+print(x, preview = TRUE)}
 
-print(x, file_pptx)
-# browseUR(file_pptx)  # may not work on all systems
 
-x <- annotate_layouts()
-print(x, file_pptx)
-# browseURL(file_pptx)  # may not work on all systems
+# Modify ph appearance (usually not needed)
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .font_size = 12,
+                  .bg = "#ff000010", .line = NA)
+\dontrun{
+print(x, preview = TRUE)}
 }
 \seealso{
 \code{\link[=plot_layout_properties]{plot_layout_properties()}}
+
+Other functions for reading presentation information:
+\code{\link{add_annotated_layouts}()},
+\code{\link{annotate_base}()},
+\code{\link{color_scheme}()},
+\code{\link{doc_properties}()},
+\code{\link{layout_properties}()},
+\code{\link{layout_summary}()},
+\code{\link{length.rpptx}()},
+\code{\link{plot_layout_properties}()},
+\code{\link{slide_size}()},
+\code{\link{slide_summary}()}
 }
+\concept{ppt_info}

@@ -506,7 +506,7 @@ docx_set_character_style <- function(x, style_id, style_name, base_on, fp_t = fp
 #' doc_properties(x)
 #' @return a data.frame
 #' @family functions for Word document informations
-#' @family functions for reading presentation information
+#' @family ppt_info
 doc_properties <- function(x) {
   if (inherits(x, "rdocx")) {
     cp <- x$doc_properties

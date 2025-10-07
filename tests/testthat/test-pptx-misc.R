@@ -154,7 +154,8 @@ test_that("cursor is incremented as expected", {
 })
 
 test_that("annotate base template", {
-  expect_s3_class(try(annotate_base(), silent = TRUE), "rpptx")
+  expect_s3_class(try(annotate_base(output_file = NULL), silent = TRUE), "rpptx")
+  expect_s3_class(try(annotate_base(output_file = tempfile(fileext = ".pptx")), silent = TRUE), "rpptx")
 })
 
 test_that("no master do not generate an error", {

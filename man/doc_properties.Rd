@@ -28,15 +28,17 @@ Other functions for Word document informations:
 \code{\link{set_doc_properties}()},
 \code{\link{styles_info}()}
 
-Other functions for reading presentation information: 
+Other functions for reading presentation information:
+\code{\link{add_annotated_layouts}()},
 \code{\link{annotate_base}()},
 \code{\link{color_scheme}()},
 \code{\link{layout_properties}()},
 \code{\link{layout_summary}()},
 \code{\link{length.rpptx}()},
+\code{\link{phs_annotate}()},
 \code{\link{plot_layout_properties}()},
 \code{\link{slide_size}()},
 \code{\link{slide_summary}()}
 }
 \concept{functions for Word document informations}
-\concept{functions for reading presentation information}
+\concept{ppt_info}

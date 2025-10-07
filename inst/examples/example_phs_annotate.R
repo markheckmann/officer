@@ -1,20 +1,35 @@
-file_pptx <- tempfile(fileext = ".pptx")
-
+# Annotate all placeholders on current slide
 x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x)
+\dontrun{
+print(x, preview = TRUE)}
 
-x <- add_slide(x, "Title Slide", ctrTitle = "My Title")
-x <- phs_annotate(x) # annotate all phs on current slide
 
-x <- add_slide(x, "Title and Content", body = plot_instr(plot(0:10)))
-x <- phs_annotate(x, "dt", "Title 1") # annotate phs with tyope dt and label "Title 1
-
+# Annotate all placeholders on all slides
+x <- read_pptx()
 x <- add_slide(x, "Title and Content")
+x <- add_slide(x, "Two Content")
+x <- phs_annotate(x, .slide_idx = "all") # annotate all slides
+\dontrun{
+print(x, preview = TRUE)}
+
+
+# Annotate some placeholders only
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, "Title 1") # annotate phs with label "Title 1" only
 x <- add_slide(x, "Title and Content")
-x <- phs_annotate(x, "sldNum", "body", .slide_idx = 3:4, .font_color = NA) # default color and size
+x <- add_slide(x, "Two Content")
+x <- phs_annotate(x, "dt", "ftr", .slide_idx = 2:3) # only types "dt" and "ftr" on slides 2 and 3
+\dontrun{
+print(x, preview = TRUE)}
 
-print(x, file_pptx)
-# browseURL(file_pptx)  # may not work on all systems
 
-x <- annotate_layouts()
-print(x, file_pptx)
-# browseURL(file_pptx)  # may not work on all systems
+# Modify ph appearance (usually not needed)
+x <- read_pptx()
+x <- add_slide(x, "Title Slide")
+x <- phs_annotate(x, .font_color = c("red", "blue", "darkgreen"), .font_size = 12,
+                  .bg = "#ff000010", .line = NA)
+\dontrun{
+print(x, preview = TRUE)}

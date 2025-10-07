@@ -7,7 +7,7 @@
 #' my_pres <- add_slide(my_pres, "Title and Content")
 #' my_pres <- add_slide(my_pres, "Title and Content")
 #' length(my_pres)
-#' @family functions for reading presentation information
+#' @family ppt_info
 length.rpptx <- function( x ){
   x$slide$length()
 }
@@ -23,7 +23,7 @@ length.rpptx <- function( x ){
 #' my_pres <- add_slide(my_pres,
 #'   layout = "Two Content", master = "Office Theme")
 #' slide_size(my_pres)
-#' @family functions for reading presentation information
+#' @family ppt_info
 slide_size <- function(x) {
   pres <- x$presentation$get()
   dimensions <- xml_attrs(xml_find_first(pres, "p:sldSz"))
@@ -42,7 +42,7 @@ slide_size <- function(x) {
 #' @examples
 #' my_pres <- read_pptx()
 #' layout_summary ( x = my_pres )
-#' @family functions for reading presentation information
+#' @family ppt_info
 layout_summary <- function( x ){
   data <- x$slideLayouts$get_metadata()
   data.frame(layout = data$name, master = data$master_name, stringsAsFactors = FALSE)
@@ -77,7 +77,7 @@ layout_summary <- function( x ){
 #' layout_properties(x = x, master = "Office Theme")
 #' layout_properties(x = x, layout = "Two Content")
 #' layout_properties(x = x)
-#' @family functions for reading presentation information
+#' @family ppt_info
 layout_properties <- function(x, layout = NULL, master = NULL) {
   data <- x$slideLayouts$get_xfrm_data()
   if (!is.null(layout) && !is.null(master)) {
@@ -134,7 +134,7 @@ layout_properties <- function(x, layout = NULL, master = NULL) {
 #'   three parameters.
 #' @param legend Add a legend to the plot (default `FALSE`).
 #' @importFrom graphics plot rect text box
-#' @family functions for reading presentation information
+#' @family ppt_info
 #' @example inst/examples/example_plot_layout_properties.R
 #'
 plot_layout_properties <- function(x, layout = NULL, master = NULL, slide_idx = NULL,
@@ -210,74 +210,6 @@ plot_layout_properties <- function(x, layout = NULL, master = NULL, slide_idx = 
 
 
 #' @export
-#' @title Placeholder parameters annotation
-#' @description generates a slide from each layout in the base document to
-#' identify the placeholder indexes, types, names, master names and layout names.
-#'
-#' This is to be used when need to know what parameters should be used with
-#' `ph_location*` calls. The parameters are printed in their corresponding shapes.
-#'
-#' Note that if there are duplicated `ph_label`, you should not use `ph_location_label()`.
-#' Hint: You can dedupe labels using [layout_dedupe_ph_labels()].
-#'
-#' @param path path to the pptx file to use as base document or NULL to use the officer default
-#' @param output_file filename to store the annotated powerpoint file or NULL to suppress generation
-#' @return rpptx object of the annotated PowerPoint file
-#' @examples
-#' # To generate an anotation of the default base document with officer:
-#' annotate_base(output_file = tempfile(fileext = ".pptx"))
-#'
-#' # To generate an annotation of the base document 'mydoc.pptx' and place the
-#' # annotated output in 'mydoc_annotate.pptx'
-#' # annotate_base(path = 'mydoc.pptx', output_file='mydoc_annotate.pptx')
-#'
-#' @family functions for reading presentation information
-annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx' ){
-  ppt <- read_pptx(path=path)
-  while(length(ppt)>0){
-    ppt <- remove_slide(ppt, 1)
-  }
-
-  # Pulling out all of the layouts stored in the template
-  lay_sum <- layout_summary(ppt)
-
-  # Looping through each layout
-  for(lidx in seq_len(nrow(lay_sum))){
-    # Pulling out the layout properties
-    layout <- lay_sum[lidx, 1]
-    master <- lay_sum[lidx, 2]
-    lp <- layout_properties ( x = ppt, layout = layout, master = master)
-
-    # Adding a slide for the current layout
-    ppt <- add_slide(x=ppt, layout = layout, master = master)
-    size <- slide_size(ppt)
-    fpar_ <- fpar(sprintf('layout ="%s", master = "%s"', layout, master),
-                  fp_t = fp_text(color = "orange", font.size = 20),
-                  fp_p = fp_par(text.align = "right", padding = 5)
-    )
-    ppt <- ph_with(x = ppt, value = fpar_, ph_label = "layout_ph",
-                   location = ph_location(left = 0, top = -0.5, width = size$width, height = 1,
-                                          bg = "transparent", newlabel = "layout_ph"))
-
-    # Blank slides have nothing
-    if(length(lp[,1] > 0)){
-      # Now we go through each placholder
-      for(pidx in seq_len(nrow(lp))){
-        textstr <- paste("type=", lp$type[pidx], ", index=", lp$id[pidx], ", ph_label=",lp$ph_label[pidx])
-        ppt <- ph_with(x=ppt,  value = textstr, location = ph_location_label(type = lp$type[pidx], ph_label = lp$ph_label[pidx]))
-      }
-    }
-  }
-
-  if(!is.null(output_file)){
-    print(ppt, target = output_file)
-  }
-
-  ppt
-}
-
-
-#' @export
 #' @title Slide content in a data.frame
 #' @description Get content and positions of current slide
 #' into a data.frame. Data for any tables, images, or paragraphs are
@@ -299,7 +231,7 @@ annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx' ){
 #'   location = ph_location_type(type="body"))
 #' slide_summary(my_pres)
 #' slide_summary(my_pres, index = 1)
-#' @family functions for reading presentation information
+#' @family ppt_info
 slide_summary <- function( x, index = NULL ){
 
   l_ <- length(x)
@@ -339,7 +271,7 @@ slide_summary <- function( x, index = NULL ){
 #' @examples
 #' x <- read_pptx()
 #' color_scheme ( x = x )
-#' @family functions for reading presentation information
+#' @family ppt_info
 color_scheme <- function( x ){
   x$masterLayouts$get_color_scheme()
 }
