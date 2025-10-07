@@ -765,30 +765,30 @@ update_location_from_dots <- function(x, ..., .dots = NULL) {
 }
 
 
-update_location_from_dots_enquo <- function(x, ...) {
-  ex <- enquos_base(...)
-  loc_env <- as.environment(x)
-  parent.env(loc_env) <- parent.frame()
-  eval(ex[[2]], envir = loc_env)
-
-  eval(ex[[2]], envir = x)
-
-  browser()
-  dots <- list(...)
-  if (length(dots) == 0) {
-    return(x)
-  }
-  allowed <- c("left", "top", "width", "height", "ph_label", "ln", "bg", "rotation", "geom")
-  arg_nms <- names(dots)
-  ii <- pmatch(arg_nms, allowed)
-  ii_na <- is.na(ii)
-  if (any(ii_na)) {
-    cli::cli_abort(
-      c("Arg{?s} passed via ... could not be matched (unambigously): {.val {arg_nms[ii_na]}}",
-        "x"="Known args are: {.val {allowed}}"), call = NULL)
-  }
-  names(dots)  <- allowed[ii]
-  x <- modifyList(x, dots)
-  x$ln <- cast_to_sp_line(x$ln)
-  x
-}
+# update_location_from_dots_enquo <- function(x, ...) {
+#   ex <- enquos_base(...)
+#   loc_env <- as.environment(x)
+#   parent.env(loc_env) <- parent.frame()
+#   eval(ex[[2]], envir = loc_env)
+#
+#   eval(ex[[2]], envir = x)
+#
+#   browser()
+#   dots <- list(...)
+#   if (length(dots) == 0) {
+#     return(x)
+#   }
+#   allowed <- c("left", "top", "width", "height", "ph_label", "ln", "bg", "rotation", "geom")
+#   arg_nms <- names(dots)
+#   ii <- pmatch(arg_nms, allowed)
+#   ii_na <- is.na(ii)
+#   if (any(ii_na)) {
+#     cli::cli_abort(
+#       c("Arg{?s} passed via ... could not be matched (unambigously): {.val {arg_nms[ii_na]}}",
+#         "x"="Known args are: {.val {allowed}}"), call = NULL)
+#   }
+#   names(dots)  <- allowed[ii]
+#   x <- modifyList(x, dots)
+#   x$ln <- cast_to_sp_line(x$ln)
+#   x
+# }
