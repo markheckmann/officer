@@ -4,8 +4,8 @@
 \alias{ph_with}
 \alias{ph_with.character}
 \alias{ph_with.numeric}
-\alias{ph_with.factor}
 \alias{ph_with.logical}
+\alias{ph_with.factor}
 \alias{ph_with.Date}
 \alias{ph_with.block_list}
 \alias{ph_with.unordered_list}
@@ -18,21 +18,28 @@
 \alias{ph_with.xml_document}
 \title{Add objects on the current slide}
 \usage{
-ph_with(x, value, location, ...)
+ph_with(x, value, location, ..., .dots = NULL)
 
-ph_with.character(x, value, location, ...)
+ph_with.character(x, value, location, ..., .dots = NULL)
 
-ph_with.numeric(x, value, location, format_fun = format, ...)
+ph_with.numeric(x, value, location, format_fun = format, ..., .dots = .dots)
 
-ph_with.factor(x, value, location, ...)
+ph_with.logical(x, value, location, format_fun = format, ..., .dots = .dots)
 
-ph_with.logical(x, value, location, format_fun = format, ...)
+ph_with.factor(x, value, location, ..., .dots)
 
-ph_with.Date(x, value, location, date_format = NULL, ...)
+ph_with.Date(x, value, location, date_format = NULL, ..., .dots = NULL)
 
-ph_with.block_list(x, value, location, level_list = integer(0), ...)
+ph_with.block_list(
+  x,
+  value,
+  location,
+  level_list = integer(0),
+  ...,
+  .dots = NULL
+)
 
-ph_with.unordered_list(x, value, location, ...)
+ph_with.unordered_list(x, value, location, ..., .dots = NULL)
 
 ph_with.data.frame(
   x,
@@ -41,18 +48,35 @@ ph_with.data.frame(
   header = TRUE,
   tcf = table_conditional_formatting(),
   alignment = NULL,
-  ...
+  ...,
+  .dots = NULL
 )
 
-ph_with.gg(x, value, location, res = 300, alt_text = "", scale = 1, ...)
+ph_with.gg(
+  x,
+  value,
+  location,
+  res = 300,
+  alt_text = "",
+  scale = 1,
+  ...,
+  .dots = NULL
+)
 
-ph_with.plot_instr(x, value, location, res = 300, ...)
+ph_with.plot_instr(x, value, location, res = 300, ..., .dots = NULL)
 
-ph_with.external_img(x, value, location, use_loc_size = TRUE, ...)
+ph_with.external_img(
+  x,
+  value,
+  location,
+  use_loc_size = TRUE,
+  ...,
+  .dots = NULL
+)
 
-ph_with.fpar(x, value, location, ...)
+ph_with.fpar(x, value, location, ..., .dots = NULL)
 
-ph_with.empty_content(x, value, location, ...)
+ph_with.empty_content(x, value, location, ..., .dots = NULL)
 
 ph_with.xml_document(x, value, location, ...)
 }

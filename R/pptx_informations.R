@@ -7,7 +7,7 @@
 #' my_pres <- add_slide(my_pres, "Title and Content")
 #' my_pres <- add_slide(my_pres, "Title and Content")
 #' length(my_pres)
-#' @family functions for reading presentation information
+#' @family ppt_info
 length.rpptx <- function( x ){
   x$slide$length()
 }
@@ -23,7 +23,7 @@ length.rpptx <- function( x ){
 #' my_pres <- add_slide(my_pres,
 #'   layout = "Two Content", master = "Office Theme")
 #' slide_size(my_pres)
-#' @family functions for reading presentation information
+#' @family ppt_info
 slide_size <- function(x) {
   pres <- x$presentation$get()
   dimensions <- xml_attrs(xml_find_first(pres, "p:sldSz"))
@@ -42,7 +42,7 @@ slide_size <- function(x) {
 #' @examples
 #' my_pres <- read_pptx()
 #' layout_summary ( x = my_pres )
-#' @family functions for reading presentation information
+#' @family ppt_info
 layout_summary <- function( x ){
   data <- x$slideLayouts$get_metadata()
   data.frame(layout = data$name, master = data$master_name, stringsAsFactors = FALSE)
@@ -77,7 +77,7 @@ layout_summary <- function( x ){
 #' layout_properties(x = x, master = "Office Theme")
 #' layout_properties(x = x, layout = "Two Content")
 #' layout_properties(x = x)
-#' @family functions for reading presentation information
+#' @family ppt_info
 layout_properties <- function(x, layout = NULL, master = NULL) {
   data <- x$slideLayouts$get_xfrm_data()
   if (!is.null(layout) && !is.null(master)) {
@@ -134,7 +134,7 @@ layout_properties <- function(x, layout = NULL, master = NULL) {
 #'   three parameters.
 #' @param legend Add a legend to the plot (default `FALSE`).
 #' @importFrom graphics plot rect text box
-#' @family functions for reading presentation information
+#' @family ppt_info
 #' @example inst/examples/example_plot_layout_properties.R
 #'
 plot_layout_properties <- function(x, layout = NULL, master = NULL, slide_idx = NULL,
@@ -302,7 +302,7 @@ annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx', ..
 #'   location = ph_location_type(type="body"))
 #' slide_summary(my_pres)
 #' slide_summary(my_pres, index = 1)
-#' @family functions for reading presentation information
+#' @family ppt_info
 slide_summary <- function( x, index = NULL ){
 
   l_ <- length(x)
@@ -342,7 +342,7 @@ slide_summary <- function( x, index = NULL ){
 #' @examples
 #' x <- read_pptx()
 #' color_scheme ( x = x )
-#' @family functions for reading presentation information
+#' @family ppt_info
 color_scheme <- function( x ){
   x$masterLayouts$get_color_scheme()
 }

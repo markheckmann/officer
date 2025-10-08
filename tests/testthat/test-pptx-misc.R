@@ -153,19 +153,21 @@ test_that("cursor is incremented as expected", {
   expect_equal(x$slide$get_slide(11)$name(), "slide11.xml")
 })
 
+
 test_that("annotate base template", {
   expect_s3_class(try(annotate_base(), silent = TRUE), "rpptx")
 })
 
-test_that("no master do not generate an error", {
-  x <- read_pptx("docs_dir/no_master.pptx")
+
+test_that("no (objects directly on) master does not generate error", {
+  path <- testthat::test_path("docs_dir/no_master.pptx")
+  x <- read_pptx(path)
   x <- add_slide(x, layout = "Page One", master = "Office Theme")
   x <- try(
     ph_with(
       x,
-      i,
-      value = "graphic title",
-      location = ph_location_type(type = "body")
+      location = ph_location_type(type = "body"),
+      value = "graphic title"
     ),
     silent = TRUE
   )

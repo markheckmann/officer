@@ -4,7 +4,7 @@
 \alias{annotate_base}
 \title{Placeholder parameters annotation}
 \usage{
-annotate_base(path = NULL, output_file = "annotated_layout.pptx")
+annotate_base(path = NULL, output_file = "annotated_layout.pptx", ...)
 }
 \arguments{
 \item{path}{path to the pptx file to use as base document or NULL to use the officer default}
@@ -35,13 +35,6 @@ annotate_base(output_file = tempfile(fileext = ".pptx"))
 }
 \seealso{
 Other functions for reading presentation information: 
-\code{\link{color_scheme}()},
-\code{\link{doc_properties}()},
-\code{\link{layout_properties}()},
-\code{\link{layout_summary}()},
-\code{\link{length.rpptx}()},
-\code{\link{plot_layout_properties}()},
-\code{\link{slide_size}()},
-\code{\link{slide_summary}()}
+\code{\link{doc_properties}()}
 }
 \concept{functions for reading presentation information}

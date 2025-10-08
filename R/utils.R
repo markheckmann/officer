@@ -499,6 +499,21 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
 }
 
 
+# remove NULL entries from list or vector
+remove_null_entries <- function(x) {
+  Filter(function(z) !is.null(z), x)
+}
+
+
+# args: character vector of arg names ro extract
+# return: list
+extract_args_from_dots <- function(args, ..., .dots = NULL) {
+  dots <- modifyList(list(...), .dots %||% list())
+  dot_args <- dots[argnames]
+  remove_null_entries(dot_args)
+}
+
+
 # htmlEscapeCopy ----
 
 htmlEscapeCopy <- local({

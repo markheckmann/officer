@@ -87,14 +87,12 @@ plot_layout_properties(x, layout = 4, cex = c(labels = .8, id = .7, type = .7))
 plot_layout_properties(x, 1, legend = TRUE)
 }
 \seealso{
-Other functions for reading presentation information: 
-\code{\link{annotate_base}()},
+Other ppt_info: 
 \code{\link{color_scheme}()},
-\code{\link{doc_properties}()},
 \code{\link{layout_properties}()},
 \code{\link{layout_summary}()},
 \code{\link{length.rpptx}()},
 \code{\link{slide_size}()},
 \code{\link{slide_summary}()}
 }
-\concept{functions for reading presentation information}
+\concept{ppt_info}
