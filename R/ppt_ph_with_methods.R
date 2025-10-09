@@ -32,7 +32,7 @@
 #' Use the following modifers to change the position, size and appearance of a placeholder. Note that the
 #' modifiers available depend on the class of the `value` object:
 #'
-#' | **Class of `value`**    | **Available modifiers**                                                 | **Also passed to function**  |
+#' | **Class of `value`**    | **Available modifiers**                                                 | **`...` are also passed to** |
 #' |--------------------------------|------------------------------------------------------------------|------------------------------|
 #' | `data.frame`                   | `top`, `left`, `width`, `height`    |                            |                              |
 #' | `gg`, `plot_instr`             | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`         | [ragg::agg_png()]            |

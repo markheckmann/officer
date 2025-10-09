@@ -195,7 +195,7 @@ The \code{location} argument of \code{ph_with()} either expects a location objec
 
 Use the following modifers to change the position, size and appearance of a placeholder. Note that the
 modifiers available depend on the class of the \code{value} object:\tabular{lll}{
-   \strong{Class of \code{value}} \tab \strong{Available modifiers} \tab \strong{Also passed to function} \cr
+   \strong{Class of \code{value}} \tab \strong{Available modifiers} \tab \strong{\code{...} are also passed to} \cr
    \code{data.frame} \tab \code{top}, \code{left}, \code{width}, \code{height} \tab  \cr
    \code{gg}, \code{plot_instr} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg} \tab \code{\link[ragg:agg_png]{ragg::agg_png()}} \cr
    \verb{<other objects>} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg}, \code{geom} \tab  \cr
