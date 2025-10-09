@@ -2,22 +2,17 @@
 
 #' @export
 #' @title Add objects on the current slide
-#' @description add an object into a new shape in the current slide. This
-#' function is able to add all supported outputs to a presentation. See
-#' section **Methods (by class)** to see supported outputs.
-#' @param x an rpptx object
-#' @param value object to add as a new shape. Supported objects
-#' are vectors, data.frame, graphics, block of formatted paragraphs,
-#' unordered list of formatted paragraphs,
-#' pretty tables with package flextable, editable graphics with
-#' package rvg, 'Microsoft' charts with package mschart.
-#' @param location a placeholder location object or a location short form. It will be used
-#' to specify the location of the new shape. This location can be defined with a call to one
-#' of the `ph_location_*` functions (see section `"see also"`). In `ph_with()`, several location
-#' short forms can be used, as listed in section `"Short forms"`.
-#' @param ... further arguments passed to or from other methods. When
-#' adding a `ggplot` object or `plot_instr`, these arguments will be used
-#' by the png function.
+#' @description Add an object into a new shape in the current slide. This function is able to add all supported outputs
+#'   to a presentation. See section **Methods (by class)** to see supported outputs.
+#' @param x An `rpptx` object.
+#' @param value Object to add as a new shape. Supported objects are vectors, data.frame, graphics, block of formatted
+#'   paragraphs, unordered list of formatted paragraphs, pretty tables with package flextable, editable graphics with
+#'   package rvg, 'Microsoft' charts with package mschart.
+#' @param location A placeholder location object or a location short form. It will be used to specify the location of
+#'   the new shape. This location can be defined with a call to one of the `ph_location_*` functions (see section
+#'   `"see also"`). In `ph_with()`, several location short forms can be used, as listed in section `"Short forms"`.
+#' @param ... Modifiers (key-value pairs) to change a placeholder's size, position or appearance (see section
+#'   `"Modifiers"`) *and* arguments passed to [ragg::agg_png()] (for `gg` or `plot_instr` objects only).
 #'
 #' @section Short forms:
 #' The `location` argument of `ph_with()` either expects a location object as returned by the
@@ -33,11 +28,22 @@
 #' | `ph_location_id(1)`                         | `1`                        | Length 1 integer                                     |
 #' | `ph_location(0, 0, 4, 5)`                   | `c(0,0,4,5)`               | Length 4 numeric, optionally named, `c(top=0, left=0, ...)` |
 #'
+#' @section Modifiers:
+#' Use the following modifers to change the position, size and appearance of a placeholder. Note that the
+#' modifiers available depend on the class of the `value` object:
+#'
+#' | **Class of `value`**    | **Available modifiers**                                                 | **Also passed to function**  |
+#' |--------------------------------|------------------------------------------------------------------|------------------------------|
+#' | `data.frame`                   | `top`, `left`, `width`, `height`    |                            |                              |
+#' | `gg`, `plot_instr`             | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`         | [ragg::agg_png()]            |
+#' | `<other objects>`              | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`, `geom` |                              |
+#'
 #' @example inst/examples/example_ph_with.R
 #' @seealso Specify placeholder locations with [ph_location_type], [ph_location],
 #' [ph_location_label], [ph_location_left], [ph_location_right],
 #' [ph_location_fullsize], [ph_location_template]. [phs_with] is a sibling of
 #' `ph_with` that fills multiple placeholders at once. Use [add_slide] to add new slides.
+#'
 #' @section Illustrations:
 #'
 #' \if{html}{\figure{ph_with_doc_1.png}{options: width=80\%}}
@@ -45,7 +51,6 @@ ph_with <- function(x, value, location, ..., .dots = NULL) {
   location <- resolve_location(location)
   .ph_with(x, value, location, ..., .dots = .dots)
 }
-
 
 .ph_with <- function(x, value, location, ..., .dots = NULL) {
   UseMethod("ph_with", value)

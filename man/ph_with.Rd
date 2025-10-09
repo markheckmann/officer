@@ -81,22 +81,18 @@ ph_with.empty_content(x, value, location, ..., .dots = NULL)
 ph_with.xml_document(x, value, location, ...)
 }
 \arguments{
-\item{x}{an rpptx object}
+\item{x}{An \code{rpptx} object.}
 
-\item{value}{object to add as a new shape. Supported objects
-are vectors, data.frame, graphics, block of formatted paragraphs,
-unordered list of formatted paragraphs,
-pretty tables with package flextable, editable graphics with
+\item{value}{Object to add as a new shape. Supported objects are vectors, data.frame, graphics, block of formatted
+paragraphs, unordered list of formatted paragraphs, pretty tables with package flextable, editable graphics with
 package rvg, 'Microsoft' charts with package mschart.}
 
-\item{location}{a placeholder location object or a location short form. It will be used
-to specify the location of the new shape. This location can be defined with a call to one
-of the \verb{ph_location_*} functions (see section \code{"see also"}). In \code{ph_with()}, several location
-short forms can be used, as listed in section \code{"Short forms"}.}
+\item{location}{A placeholder location object or a location short form. It will be used to specify the location of
+the new shape. This location can be defined with a call to one of the \verb{ph_location_*} functions (see section
+\code{"see also"}). In \code{ph_with()}, several location short forms can be used, as listed in section \code{"Short forms"}.}
 
-\item{...}{further arguments passed to or from other methods. When
-adding a \code{ggplot} object or \code{plot_instr}, these arguments will be used
-by the png function.}
+\item{...}{Modifiers (key-value pairs) to change a placeholder's size, position or appearance (see section
+\code{"Modifiers"}) \emph{and} arguments passed to \code{\link[ragg:agg_png]{ragg::agg_png()}} (for \code{gg} or \code{plot_instr} objects only).}
 
 \item{format_fun}{format function for non character vectors}
 
@@ -126,9 +122,8 @@ an alt text added with \code{ggplot2::labs(alt = ...)} will be used if any.}
 be used.}
 }
 \description{
-add an object into a new shape in the current slide. This
-function is able to add all supported outputs to a presentation. See
-section \strong{Methods (by class)} to see supported outputs.
+Add an object into a new shape in the current slide. This function is able to add all supported outputs
+to a presentation. See section \strong{Methods (by class)} to see supported outputs.
 }
 \section{Functions}{
 \itemize{
@@ -193,6 +188,17 @@ The \code{location} argument of \code{ph_with()} either expects a location objec
    \code{ph_location_label("my_label")} \tab \code{"my_label"} \tab Any string not matching a keyword or type \cr
    \code{ph_location_id(1)} \tab \code{1} \tab Length 1 integer \cr
    \code{ph_location(0, 0, 4, 5)} \tab \code{c(0,0,4,5)} \tab Length 4 numeric, optionally named, \code{c(top=0, left=0, ...)} \cr
+}
+}
+
+\section{Modifiers}{
+
+Use the following modifers to change the position, size and appearance of a placeholder. Note that the
+modifiers available depend on the class of the \code{value} object:\tabular{lll}{
+   \strong{Class of \code{value}} \tab \strong{Available modifiers} \tab \strong{Also passed to function} \cr
+   \code{data.frame} \tab \code{top}, \code{left}, \code{width}, \code{height} \tab  \cr
+   \code{gg}, \code{plot_instr} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg} \tab \code{\link[ragg:agg_png]{ragg::agg_png()}} \cr
+   \verb{<other objects>} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg}, \code{geom} \tab  \cr
 }
 }
 
