@@ -317,6 +317,9 @@ df_rename <- function(df, old, new) {
 }
 
 
+#' Check if is rpptx object
+#' @export
+#' @keywords internal
 is_rpptx <- function(x) inherits(x, "rpptx")
 
 
@@ -333,6 +336,9 @@ stop_if_not_class <- function(x, class, arg = NULL) {
 }
 
 
+#' Check if is  rpptx object
+#' @export
+#' @keywords internal
 stop_if_not_rpptx <- function(x, arg = NULL) {
   stop_if_not_class(x, "rpptx", arg)
 }
