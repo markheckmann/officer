@@ -32,11 +32,11 @@
 #' Use the following modifers to change the position, size and appearance of a placeholder. Note that the
 #' modifiers available depend on the class of the `value` object:
 #'
-#' | **Class of `value`**    | **Available modifiers**                                                 | **`...` are also passed to** |
-#' |--------------------------------|------------------------------------------------------------------|------------------------------|
-#' | `data.frame`                   | `top`, `left`, `width`, `height`    |                            |                              |
-#' | `gg`, `plot_instr`             | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`         | [ragg::agg_png()]            |
-#' | `<other objects>`              | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`, `geom` |                              |
+#' | **Class of `value`**            | **Available modifiers**                                          | **`...` are also passed to** |
+#' |---------------------------------|------------------------------------------------------------------|------------------------------|
+#' | `data.frame`                    | `top`, `left`, `width`, `height`                                 |                              |
+#' | `gg`,`plot_instr`,`external_img`| `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`         | [ragg::agg_png()]            |
+#' | `<other objects>`               | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`, `geom` | `format_fun` for `<numeric>` |
 #'
 #' @example inst/examples/example_ph_with.R
 #' @seealso Specify placeholder locations with [ph_location_type], [ph_location],
@@ -89,15 +89,21 @@ ph_with.character <- function(x, value, location, ..., .dots = NULL) {
 
 
 #' @export
-#' @param format_fun format function for non character vectors
+#' @param format_fun Formatting function for non-character vectors (default [format()])
 #' @describeIn ph_with add a numeric vector to a new shape on the
 #' current slide, values will be be first formatted then
 #' added as paragraphs.
 ph_with.numeric <- function(x, value, location, format_fun = format, ..., .dots = .dots) {
   slide <- x$slide$get_slide(x$cursor)
-  value <- format_fun(value, ...)
+
+  # make sure to only pass dots not meant for update_location_from_dots() to format_fun()
+  dots <- modifyList(list(...), .dots %||% list())
+  location_args <- c("left", "top", "width", "height", "ph_label", "ln", "bg", "rotation", "geom")
+  format_args <- dots[!names(dots) %in% location_args]
+  value <- do.call(match.fun(format_fun), c(list(value), format_args))
+
   location <- fortify_location(location, doc = x)
-  location <- update_location_from_dots(location, ..., .dots = .dots)
+  location <- update_location_from_dots(location, ..., .dots = .dots, discard_unkown_args = TRUE)
 
   new_ph <- shape_properties_tags(
     left = location$left, top = location$top,

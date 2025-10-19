@@ -94,7 +94,7 @@ the new shape. This location can be defined with a call to one of the \verb{ph_l
 \item{...}{Modifiers (key-value pairs) to change a placeholder's size, position or appearance (see section
 \code{"Modifiers"}) \emph{and} arguments passed to \code{\link[ragg:agg_png]{ragg::agg_png()}} (for \code{gg} or \code{plot_instr} objects only).}
 
-\item{format_fun}{format function for non character vectors}
+\item{format_fun}{Formatting function for non-character vectors (default \code{\link[=format]{format()}})}
 
 \item{date_format}{A format string for dates (default \code{"\%Y-\%m-\%d"}).
 See \code{format} arg in \code{\link[=strftime]{strftime()}} for details.
@@ -197,8 +197,8 @@ Use the following modifers to change the position, size and appearance of a plac
 modifiers available depend on the class of the \code{value} object:\tabular{lll}{
    \strong{Class of \code{value}} \tab \strong{Available modifiers} \tab \strong{\code{...} are also passed to} \cr
    \code{data.frame} \tab \code{top}, \code{left}, \code{width}, \code{height} \tab  \cr
-   \code{gg}, \code{plot_instr} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg} \tab \code{\link[ragg:agg_png]{ragg::agg_png()}} \cr
-   \verb{<other objects>} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg}, \code{geom} \tab  \cr
+   \code{gg},\code{plot_instr},\code{external_img} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg} \tab \code{\link[ragg:agg_png]{ragg::agg_png()}} \cr
+   \verb{<other objects>} \tab \code{top}, \code{left}, \code{width}, \code{height}, \code{rotation}, \code{ln}, \code{bg}, \code{geom} \tab \code{format_fun} for \verb{<numeric>} \cr
 }
 }
 
