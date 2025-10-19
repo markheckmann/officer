@@ -542,34 +542,6 @@ test_that("short-form locations", {
 })
 
 
-get_shapetree <- function(x, slide_idx = NULL) {
-  stop_if_not_rpptx(x)
-  slide_idx <- slide_idx %||% x$cursor
-  xml_node <- x$slide$get_slide(slide_idx)$get()
-  xml2::xml_child(xml_node, "*/p:spTree")
-}
-
-
-get_shapetrees <- function(x, slide_idx = NULL) {
-  stop_if_not_rpptx(x)
-  slide_idx <- slide_idx %||% seq_len(length(x))
-  lapply(slide_idx, function(idx) get_shapetree(x, idx))
-}
-
-
-# all slide's shapetrees as a string and shape's UUIDs removed
-# used to check if created slides are identical.
-get_shapetrees_string <- function(x, slide_idx = NULL) {
-  stop_if_not_rpptx(x)
-  sp_tree <- get_shapetrees(x, slide_idx = slide_idx)
-  sp_tree_chr <- vapply(sp_tree, paste, character(1))
-  s <- paste(sp_tree_chr, collapse = " ")
-  gsub(
-    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
-    "xxx",
-    s
-  ) # delete shape's UUIDs
-}
 
 
 test_that("ph_with, phs_with, add_slide equality", {
@@ -743,4 +715,89 @@ test_that("add_slide, phs_with: ... and .dots", {
   expect_equal(st_1, st_3)
   expect_equal(st_1, st_4)
   expect_equal(st_1, st_5)
+})
+
+
+test_that("ph_with: ... and .dots", {
+  # check if ... and .dots are processed as expected by each ph_with.* method
+  require(ggplot2)
+
+  loc <- "body[1]"
+  layout <- "Two Content"
+  bg <- "#ff000015"
+  dots <- list(ln = "red", rot = 3, geom = "round2SameRect")
+
+  fp <- fpar(ftext("text for first page header", prop = fp_text_lite(color = "red", font.size = 40, bold = TRUE)))
+  bl <- block_list(fp, fp)
+  ul <- unordered_list(
+    level_list = c(1, 2, 1),
+    str_list = c("Level1", "Level2", "Level1"),
+    style = list(
+      fp_text(color = "red", font.size = 0),
+      fp_text(color = "pink", font.size = 0),
+      fp_text(color = "orange", font.size = 0)
+    )
+  )
+
+  file_png <- test_path("img/dog_1.png")
+  ext_img <- external_img(file_png, width = 4, height = 3)
+
+  p <- ggplot(mtcars, aes(wt, mpg)) +
+    geom_point() +
+    theme_minimal(base_size = 15) +
+    theme(
+      plot.background  = element_rect(fill = "transparent", colour = NA),
+      panel.background = element_rect(fill = "transparent", colour = NA)
+    )
+
+  x <- read_pptx()
+  x <- add_slide(x, layout, title = "ph_with.character()")
+  x <- ph_with(x, location = loc, "The body", bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.numeric()")
+  x <- ph_with(x, location = loc, 1:3, bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.numeric()")
+  x <- ph_with(x, location = loc, as.double(1:3), bg = bg, .dots = dots, nsmall = 3, decimal.mark = ",")
+  x <- add_slide(x, layout, title = "ph_with.factor()")
+  x <- ph_with(x, location = loc, factor(letters[1:3]), bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.Date()")
+  x <- ph_with(x, location = loc, Sys.Date(), date_format = "%D", bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.fpar()")
+  x <- ph_with(x, location = loc, fp, bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.block_list()")
+  x <- ph_with(x, location = loc, bl, bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.unordered_list()")
+  x <- ph_with(x, location = loc, ul, bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.empty_content()")
+  x <- ph_with(x, location = loc, empty_content(), bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.external_img()") # no: geom
+  x <- ph_with(x, location = loc, ext_img, use_loc_size = FALSE, bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.plot_instr()") # no: geom
+  x <- ph_with(x, location = loc, plot_instr(code = barplot(1:5, col = 2:6)), bg = bg, .dots = dots)
+  x <- add_slide(x, layout, title = "ph_with.gg()") # no: geom
+  x <- ph_with(x, location = loc, p, bg = bg, .dots = dots, scaling = 2)
+  x <- add_slide(x, layout, title = "ph_with.data.frame()") # no: geom, ln, bg, rotatation
+  x <- ph_with(x, location = loc, mtcars[1:3, ], bg = bg, .dots = dots, width = 9)
+
+  pptx_expected <- test_path("docs_dir/expected_ph_with_dots_test.pptx")
+  # print(x, pptx_expected) # Save expected file. When replacing it, make sure to check manually
+  check <- is_identical_shapetree(x, pptx_expected)
+  expect_true(check)
+
+
+  # some methods pass ... on to two functions.
+  # ph_with.numeric() passes ... also to format_fun.
+  # Check if that works too by creating the same result in two ways.
+  val <- 1.1
+  x1 <- read_pptx()
+  x1 <- add_slide(x1, layout, title = "ph_with.numeric()")
+  x1 <- ph_with(x1, val, location = "body[1]", .dots = dots, decimal.mark = ",")
+  x1 <- ph_with(x1, val, location = "body[2]", .dots = dots, nsmall = 3)
+
+  x2 <- read_pptx()
+  x2 <- add_slide(x2, layout, title = "ph_with.numeric()")
+  x2 <- ph_with(x2, format(val, decimal.mark = ","), location = "body[1]", .dots = dots)
+  x2 <- ph_with(x2, format(val, nsmall = 3), location = "body[2]", .dots = dots)
+
+  check <- is_identical_shapetree(x1, x2)
+  expect_true(check)
 })

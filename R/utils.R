@@ -317,6 +317,9 @@ df_rename <- function(df, old, new) {
 }
 
 
+is_rpptx <- function(x) inherits(x, "rpptx")
+
+
 # replacement for stopifnot() with nicer user feedback
 stop_if_not_class <- function(x, class, arg = NULL) {
   check <- inherits(x, what = class)
