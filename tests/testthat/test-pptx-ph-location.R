@@ -1,3 +1,5 @@
+source("utils.R")
+
 test_that("pptx ph locations", {
   doc <- read_pptx()
   doc <- add_slide(doc, "Title and Content", "Office Theme")

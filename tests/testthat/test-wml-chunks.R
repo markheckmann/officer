@@ -1,4 +1,3 @@
-source("utils.R")
 
 get_wml_node <- function(x) {
   xml_ <- to_wml(x)
