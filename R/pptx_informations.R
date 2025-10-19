@@ -232,7 +232,7 @@ plot_layout_properties <- function(x, layout = NULL, master = NULL, slide_idx = 
 #' # annotate_base(path = 'mydoc.pptx', output_file='mydoc_annotate.pptx')
 #'
 #' @family functions for reading presentation information
-annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx', ...){
+annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx'){
   ppt <- read_pptx(path=path)
   while(length(ppt)>0){
     ppt <- remove_slide(ppt, 1)
@@ -266,7 +266,7 @@ annotate_base <- function(path = NULL, output_file = 'annotated_layout.pptx', ..
         textstr <- paste("type=", lp$type[pidx],
                          ", index=", lp$id[pidx],
                          ", ph_label=",lp$ph_label[pidx])
-        loc <- ph_location_label(type = lp$type[pidx], ph_label = lp$ph_label[pidx], ...)
+        loc <- ph_location_label(type = lp$type[pidx], ph_label = lp$ph_label[pidx])
         ppt <- ph_with(x = ppt,  value = textstr, location = loc)
       }
     }

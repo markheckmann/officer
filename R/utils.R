@@ -512,7 +512,7 @@ remove_null_entries <- function(x) {
 # return: list
 extract_args_from_dots <- function(args, ..., .dots = NULL) {
   dots <- modifyList(list(...), .dots %||% list())
-  dot_args <- dots[argnames]
+  dot_args <- dots[args]
   remove_null_entries(dot_args)
 }
 

@@ -94,6 +94,8 @@ the new shape. This location can be defined with a call to one of the \verb{ph_l
 \item{...}{Modifiers (key-value pairs) to change a placeholder's size, position or appearance (see section
 \code{"Modifiers"}) \emph{and} arguments passed to \code{\link[ragg:agg_png]{ragg::agg_png()}} (for \code{gg} or \code{plot_instr} objects only).}
 
+\item{.dots}{Pass \code{...} as named list.}
+
 \item{format_fun}{Formatting function for non-character vectors (default \code{\link[=format]{format()}})}
 
 \item{date_format}{A format string for dates (default \code{"\%Y-\%m-\%d"}).

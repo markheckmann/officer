@@ -4,7 +4,7 @@
 \alias{annotate_base}
 \title{Placeholder parameters annotation}
 \usage{
-annotate_base(path = NULL, output_file = "annotated_layout.pptx", ...)
+annotate_base(path = NULL, output_file = "annotated_layout.pptx")
 }
 \arguments{
 \item{path}{path to the pptx file to use as base document or NULL to use the officer default}

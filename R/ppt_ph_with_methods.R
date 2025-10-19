@@ -13,6 +13,7 @@
 #'   `"see also"`). In `ph_with()`, several location short forms can be used, as listed in section `"Short forms"`.
 #' @param ... Modifiers (key-value pairs) to change a placeholder's size, position or appearance (see section
 #'   `"Modifiers"`) *and* arguments passed to [ragg::agg_png()] (for `gg` or `plot_instr` objects only).
+#' @param .dots Pass `...` as named list.
 #'
 #' @section Short forms:
 #' The `location` argument of `ph_with()` either expects a location object as returned by the
