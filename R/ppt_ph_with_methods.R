@@ -40,6 +40,7 @@
 #' | `<other objects>`               | `top`, `left`, `width`, `height`, `rotation`, `ln`, `bg`, `geom` | `format_fun` for `<numeric>` |
 #'
 #' @example inst/examples/example_ph_with.R
+#'
 #' @seealso Specify placeholder locations with [ph_location_type], [ph_location],
 #' [ph_location_label], [ph_location_left], [ph_location_right],
 #' [ph_location_fullsize], [ph_location_template]. [phs_with] is a sibling of
