@@ -84,3 +84,9 @@ is_identical_shapetree <- function(x, y,  slide_idx = NULL) {
   st_y <- get_shapetrees_string(y)
   identical(st_x, st_y)
 }
+
+
+# coalesce for R (not exported by officer)
+`%||%` <- function(l, r) {
+  if (is.null(l)) r else l
+}

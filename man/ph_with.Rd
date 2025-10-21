@@ -398,17 +398,18 @@ print(x, preview = TRUE)}
 colored_text <- fpar(ftext("some colored text  ...", prop = fp_text_lite(color = "red")))
 ext_img <- external_img(system.file("img/dog.png", package = "officer"), guess_size = TRUE)
 my_line <- sp_line("red", lty = "dash", lwd = 2)
+bg <- "#ff000030"
 
 x <- read_pptx()
 # slide with text
 x <- add_slide(x, "Two Content")
-x <- ph_with(x, "The Title", "title", bg = "#0000ff30", ln = "blue", rotation = 2, geom = "horizontalScroll")
+x <- ph_with(x, "The Title", "title", bg = "#0000ff30", ln = "blue", geom = "horizontalScroll")
 x <- ph_with(x, "I am a star", "body[1]", geom = "star32", bg = "orange")
-x <- ph_with(x, colored_text, "body[2]", geom = "roundRect", rotation = 3, bg = "#ff000015", ln = "red")
+x <- ph_with(x, colored_text, "body[2]", geom = "roundRect", rotation = 3, bg = bg, ln = "red")
 # slide with images
 x <- add_slide(x, "Two Content")
-x <- ph_with(x, "\u2665 Doggies \u2665", "title", bg = "#0000ff30", geom = "downArrow")
-x <- ph_with(x, ext_img, "body[1]", use_loc_size = FALSE, bg = "#ff000030", rotation = -3, ln = my_line)
+x <- ph_with(x, "Doggies", "title", bg = "#0000ff30", geom = "downArrow", ln = "blue")
+x <- ph_with(x, ext_img, "body[1]", use_loc_size = FALSE, bg = bg, rotation = -3, ln = my_line)
 x <- ph_with(x, ext_img, "body[2]", use_loc_size = FALSE, bg = "#00ff0030", rotation = 5)
 \dontrun{
 print(x, preview = TRUE)}
