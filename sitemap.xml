@@ -10,6 +10,8 @@
 <url><loc>https://davidgohel.github.io/officer/reference/add_slide.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/annotate_base.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/as.matrix.rpptx.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/as_base64.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/base64_to_image.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/block_caption.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/block_gg.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/block_list.html</loc></url>
@@ -55,7 +57,6 @@
 <url><loc>https://davidgohel.github.io/officer/reference/docx_comments.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/docx_current_block_xml.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/docx_dim.html</loc></url>
-<url><loc>https://davidgohel.github.io/officer/reference/docx_reference_img.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/docx_set_character_style.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/docx_set_paragraph_style.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/docx_set_settings.html</loc></url>
@@ -63,6 +64,7 @@
 <url><loc>https://davidgohel.github.io/officer/reference/docx_summary.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/empty_content.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/external_img.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/floating_external_img.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/fortify_location.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/fp_border.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/fp_cell.html</loc></url>
@@ -71,6 +73,7 @@
 <url><loc>https://davidgohel.github.io/officer/reference/fp_tabs.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/fp_text.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/fpar.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/from_base64.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/ftext.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/get_layout.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/get_reference_value.html</loc></url>
@@ -110,9 +113,11 @@
 <url><loc>https://davidgohel.github.io/officer/reference/ph_slidelink.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/ph_with.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/phs_with.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/plot_in_png.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/plot_instr.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/plot_layout_properties.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/pptx_summary.html</loc></url>
+<url><loc>https://davidgohel.github.io/officer/reference/print.rdocx.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/print.rpptx.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/print.rtf.html</loc></url>
 <url><loc>https://davidgohel.github.io/officer/reference/prop_section.html</loc></url>
