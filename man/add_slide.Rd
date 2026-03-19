@@ -50,6 +50,7 @@ x <- add_slide(
 Other functions to manipulate slides:
 \code{\link{move_slide}()},
 \code{\link{on_slide}()},
+\code{\link{pptx_concat}()},
 \code{\link{remove_slide}()},
 \code{\link{set_notes}()}
 }

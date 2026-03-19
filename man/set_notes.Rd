@@ -72,6 +72,7 @@ Other functions to manipulate slides:
 \code{\link{add_slide}()},
 \code{\link{move_slide}()},
 \code{\link{on_slide}()},
+\code{\link{pptx_concat}()},
 \code{\link{remove_slide}()}
 }
 \concept{slide_manipulation}
