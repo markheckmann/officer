@@ -10,7 +10,8 @@
 \item{...}{\code{rpptx} objects to concatenate.}
 }
 \value{
-An \code{rpptx} object with slides from all inputs.
+A new \code{rpptx} object with slides from all inputs. The input objects
+are not modified.
 }
 \description{
 S3 method that allows using \code{c()} to concatenate \code{rpptx} objects.

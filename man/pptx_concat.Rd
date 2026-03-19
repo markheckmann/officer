@@ -12,37 +12,38 @@ pptx_concat(target, ...)
 \item{...}{one or more \code{rpptx} objects whose slides are appended.}
 }
 \value{
-The modified \code{target} as an \code{rpptx} object with all source slides
-appended. The cursor is set to the last slide.
+A new \code{rpptx} object with target slides followed by all source slides.
+The cursor is set to the last slide. The input objects (\code{target} and
+sources) are not modified.
 }
 \description{
 Append slides from one or more source presentations to a target
 presentation. The result keeps the target's template, properties, table styles,
 and slide size. Slides from source presentations are appended in order.
 
-All source presentations must use layouts that exist in the target (matched by
-layout name and master name). If a source slide references a layout not found
-in the target, an error is raised.
+Source layouts are matched to the target by layout name and master name. If a
+source slide uses a layout not present in the target, the layout and its
+master/theme are automatically copied from the source into the target.
 }
 \examples{
-# create two presentations from the same template
-pptx1 <- read_pptx()
-pptx1 <- add_slide(pptx1, layout = "Title and Content")
-pptx1 <- ph_with(pptx1, "Slide from pptx1",
-  location = ph_location_type(type = "body"))
+# create presentations from the same template and join them
+p1 <- read_pptx()
+p1 <- add_slide(p1, layout = "Title Slide", ctrTitle = "Presentation 1")
 
-pptx2 <- read_pptx()
-pptx2 <- add_slide(pptx2, layout = "Title and Content")
-pptx2 <- ph_with(pptx2, "Slide from pptx2",
-  location = ph_location_type(type = "body"))
+p2 <- read_pptx()
+p2 <- add_slide(p2, layout = "Title and Content", title = "Presentation 2")
 
-# concatenate
-result <- pptx_concat(pptx1, pptx2)
-length(result) # 2
+p3 <- read_pptx()
+p3 <- add_slide(p3, layout = "Two Content", title = "Presentation 3")
 
-# or use c()
-result2 <- c(pptx1, pptx2)
-length(result2) # 2
+# concatenate: creates new object. p1, p2, and p3 are not modified
+pp <- pptx_concat(p1, p2, p3)
+length(pp) # 2
+length(p1)  # 1, unchanged
+
+# same using c()
+pp <- c(p1, p2, p3)
+length(pp) # 2
 }
 \seealso{
 \code{\link[=read_pptx]{read_pptx()}}, \code{\link[=add_slide]{add_slide()}}
