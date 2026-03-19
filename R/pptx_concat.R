@@ -32,7 +32,9 @@ pptx_concat <- function(target, ...) {
     }
   }
 
-  # Warn if slide sizes differ
+  # Slide sizes are a property of the presentation, not individual slides.
+  # Mixing sizes produces a valid file but slides may render with unexpected
+  # margins or clipping, so we warn early.
   target_size <- slide_size(target)
   for (i in seq_along(sources)) {
     src_size <- slide_size(sources[[i]])
@@ -45,8 +47,9 @@ pptx_concat <- function(target, ...) {
     }
   }
 
-  # Save target and sources to temp files so in-memory XML changes are flushed
-  # to disk and we work on copies (avoiding mutation of the caller's objects)
+  # Round-trip through temp files for two reasons:
+  # 1. Flush any in-memory XML edits to disk (R6 objects may hold unsaved state)
+  # 2. Work on independent copies so the caller's objects are never mutated
   layout_default <- target$layout_default
   tmp_target <- tempfile(fileext = ".pptx")
   print(target, target = tmp_target)
@@ -59,7 +62,9 @@ pptx_concat <- function(target, ...) {
     read_pptx(tmp)
   })
 
-  # Copy missing layouts/masters/themes from sources into target
+  # Phase 1: Ensure every layout used by source slides exists in the target.
+  # If a source slide references a layout/master not in the target, the layout
+  # (and its master + theme if needed) are copied into the target's package dir.
   target <- copy_missing_layouts(target, sources)
 
   # Build target layout mapping: (layout_name, master_name) -> layout_filename
@@ -69,7 +74,9 @@ pptx_concat <- function(target, ...) {
     target <- concat_one_source(target, sources[[i]], target_layout_meta, source_index = i)
   }
 
-  # Save and reload to get clean R6 state
+  # Final round-trip: save and reload so the returned rpptx has fully
+  # consistent R6 state (slide collections, relationship caches, etc.)
+  # that reflects all the files we copied into the package directory.
   layout_default <- target$layout_default
   tmp <- tempfile(fileext = ".pptx")
   print(target, target = tmp)
@@ -112,43 +119,57 @@ c.rpptx <- function(...) {
 }
 
 
-# Internal: append slides from one source to target
+# Internal: append slides from one source to target.
+#
+# For each source slide this function:
+#   1. Copies the slide XML into the target package directory
+#   2. Rebuilds the slide's .rels file, remapping layout references and copying
+#      media/other assets with new relationship IDs
+#   3. Registers the slide in presentation.xml, [Content_Types].xml, and the
+#      internal R6 slide collection
+#   4. Copies any associated notes slides
+#
+# OOXML context: each slideN.xml has a companion _rels/slideN.xml.rels that
+# lists its dependencies (layout, images, charts, hyperlinks). We cannot reuse
+# the source .rels directly because (a) the layout filename may differ in the
+# target and (b) relationship IDs (rId1, rId2, ...) must be unique per part.
 concat_one_source <- function(target, source, target_layout_meta, source_index) {
   n_source_slides <- length(source)
   if (n_source_slides == 0L) {
     return(target)
   }
 
-  # Build layout mapping: source layout filename -> target layout filename
+  # Map source layout filenames (e.g. "slideLayout2.xml") to the corresponding
+  # target layout filenames so we can fix up the layout reference in each
+  # slide's .rels.
   source_layout_meta <- source$slideLayouts$get_metadata()
   layout_map <- build_layout_map(source_layout_meta, target_layout_meta, source_index)
 
-  # Get source slides in presentation order
   source_slide_data <- source$presentation$slide_data()
   source_pkg <- source$package_dir
   target_pkg <- target$package_dir
 
-  # Ensure target media directory exists
   dir.create(file.path(target_pkg, "ppt/media"), showWarnings = FALSE, recursive = TRUE)
 
-  # Track slide filename mapping for notes
-  slide_file_map <- character(0) # source_slide -> target_slide
+  # Track source->target slide filename mapping so we can wire up notes later
+  slide_file_map <- character(0)
 
   for (row_i in seq_len(nrow(source_slide_data))) {
     src_slide_file <- basename(source_slide_data$target[row_i])
 
-    # Get new slide filename in target
     new_slide_name <- target$slide$get_new_slidename()
     new_slide_path <- file.path(target_pkg, "ppt/slides", new_slide_name)
 
-    # Copy slide XML
+    # Copy the raw slide XML (content + formatting) into the target package
     file.copy(
       file.path(source_pkg, "ppt/slides", src_slide_file),
       new_slide_path,
       copy.mode = FALSE
     )
 
-    # Read source slide's .rels and build new .rels for target
+    # Build a new .rels for this slide. We iterate over the source .rels entries
+    # and remap each one: layout -> target layout filename, images -> copied
+    # media with new rIds, external links -> kept as-is, etc.
     src_rels_path <- file.path(source_pkg, "ppt/slides/_rels", paste0(src_slide_file, ".rels"))
     new_rel <- relationship$new()
 
@@ -162,7 +183,8 @@ concat_one_source <- function(target, source, target_layout_meta, source_index) 
         rel_id <- paste0("rId", new_rel$get_next_id())
 
         if (rel_type_base == "slideLayout") {
-          # Remap layout
+          # Remap to the matching layout in the target (may have a different
+          # filename, e.g. slideLayout3.xml -> slideLayout7.xml)
           src_layout_file <- basename(rel_row$target)
           target_layout_file <- layout_map[[src_layout_file]]
           new_rel$add(
@@ -171,7 +193,8 @@ concat_one_source <- function(target, source, target_layout_meta, source_index) 
             target = paste0("../slideLayouts/", target_layout_file)
           )
         } else if (rel_type_base == "image") {
-          # Copy media file
+          # Copy media file into target's ppt/media/ using a unique name
+          # (fake_newname generates a UUID-based name to avoid collisions)
           src_media <- basename(rel_row$target)
           src_media_path <- file.path(source_pkg, "ppt/media", src_media)
           if (file.exists(src_media_path)) {
@@ -185,13 +208,17 @@ concat_one_source <- function(target, source, target_layout_meta, source_index) 
               type = rel_row$type,
               target = paste0("../media/", dest_name)
             )
+            # The slide XML references resources by rId (e.g. r:embed="rId3").
+            # Since we assigned a new rId, patch the slide XML to match.
             update_media_ref_in_slide(new_slide_path, rel_row$id, rel_id)
           }
         } else if (rel_type_base == "notesSlide") {
-          # Skip notes for now - handled separately
+          # Notes are handled in a separate pass (copy_notes_slides) because
+          # they need their own .rels pointing back to the target slide.
           next
         } else if (!is.na(rel_row$target_mode) && rel_row$target_mode == "External") {
-          # External links (hyperlinks etc.) - keep as-is
+          # External links (hyperlinks, mailto:, etc.) have no file to copy.
+          # Keep the URL target as-is but assign a new rId.
           new_rel$add(
             id = rel_id,
             type = rel_row$type,
@@ -200,19 +227,23 @@ concat_one_source <- function(target, source, target_layout_meta, source_index) 
           )
           update_media_ref_in_slide(new_slide_path, rel_row$id, rel_id)
         } else {
-          # Other relationships (charts, etc.) - copy the referenced file
+          # Catch-all for other embedded parts (charts, diagrams, etc.):
+          # copy the referenced file and remap the rId in the slide XML.
           copy_generic_rel(source_pkg, target_pkg, rel_row, new_rel, rel_id)
           update_media_ref_in_slide(new_slide_path, rel_row$id, rel_id)
         }
       }
     }
 
-    # Write new .rels
+    # Write the rebuilt .rels for this slide
     rels_dir <- file.path(target_pkg, "ppt/slides/_rels")
     dir.create(rels_dir, showWarnings = FALSE, recursive = TRUE)
     new_rel$write(file.path(rels_dir, paste0(new_slide_name, ".rels")))
 
-    # Register slide in target
+    # Register the new slide in three places (all required by OOXML):
+    # 1. presentation.xml: adds <p:sldId> so PowerPoint knows the slide exists
+    # 2. [Content_Types].xml: maps the part name to the slide content type
+    # 3. Internal R6 slide collection: keeps officer's in-memory model in sync
     target$presentation$add_slide(target = file.path("slides", new_slide_name))
     target$content_type$add_slide(partname = file.path("/ppt/slides", new_slide_name))
     target$slide$add_slide(new_slide_path, target$slideLayouts$get_xfrm_data())
@@ -228,10 +259,12 @@ concat_one_source <- function(target, source, target_layout_meta, source_index) 
 }
 
 
-# Build mapping from source layout filenames to target layout filenames
+# Build mapping from source layout filenames to target layout filenames.
+# Matching strategy: first try (layout_name + master_name) for an exact match,
+# then fall back to layout_name only. The fallback handles the common case
+# where the same built-in layout (e.g. "Title and Content") exists in both
+# presentations but under differently named masters.
 build_layout_map <- function(source_layout_meta, target_layout_meta, source_index) {
-  # source_layout_meta has columns: name, filename, master_file, master_name
-  # target_layout_meta has columns: name, filename, master_file, master_name
   layout_map <- list()
 
   for (i in seq_len(nrow(source_layout_meta))) {
@@ -239,13 +272,14 @@ build_layout_map <- function(source_layout_meta, target_layout_meta, source_inde
     src_master <- source_layout_meta$master_name[i]
     src_file <- source_layout_meta$filename[i]
 
+    # Prefer exact match on (layout_name, master_name)
     match_idx <- which(
       target_layout_meta$name == src_name &
         target_layout_meta$master_name == src_master
     )
 
     if (length(match_idx) == 0L) {
-      # Try matching by layout name only (useful when master names differ but layout is the same)
+      # Fallback: match by layout name only
       match_idx <- which(target_layout_meta$name == src_name)
     }
 
@@ -266,7 +300,12 @@ build_layout_map <- function(source_layout_meta, target_layout_meta, source_inde
 }
 
 
-# Update relationship IDs in a slide XML file
+# Update relationship IDs in a slide XML file.
+# OOXML slides reference relationships by rId attributes (e.g. r:embed="rId3",
+# r:link="rId5"). When we assign new rIds during .rels rebuilding, we must
+# patch the slide XML so these references stay consistent. We use text-level
+# replacement (not XML parsing) because rId strings appear as attribute values
+# only and this approach is simpler and faster than a full XML round-trip.
 update_media_ref_in_slide <- function(slide_path, old_id, new_id) {
   if (old_id == new_id) {
     return(invisible())
@@ -283,12 +322,14 @@ update_media_ref_in_slide <- function(slide_path, old_id, new_id) {
 }
 
 
-# Copy generic relationship target files
+# Copy a generic (non-layout, non-image, non-notes) relationship target.
+# This handles embedded parts like charts or diagrams: we copy the referenced
+# file into the target package at the same relative path and add the
+# relationship entry to the new .rels.
 copy_generic_rel <- function(source_pkg, target_pkg, rel_row, new_rel, rel_id) {
-  # For relative targets, resolve and copy
   target_rel <- rel_row$target
   if (!grepl("^https?://", target_rel) && !grepl("^mailto:", target_rel)) {
-    # Resolve the path relative to ppt/slides/
+    # Relative path — resolve from ppt/slides/ and copy the file
     src_file <- normalizePath(
       file.path(source_pkg, "ppt/slides", target_rel),
       mustWork = FALSE
@@ -310,7 +351,13 @@ copy_generic_rel <- function(source_pkg, target_pkg, rel_row, new_rel, rel_id) {
 }
 
 
-# Copy notes slides from source to target
+# Copy notes slides from source to target.
+#
+# OOXML notes structure: each notesSlideN.xml has a .rels with two
+# relationships — one pointing to the notesMaster and one pointing back to
+# the parent slide. We must rewire both to reference the *target's* master
+# and slide filenames. Additionally, the parent slide's .rels needs a new
+# entry pointing to the notes slide (bidirectional link).
 copy_notes_slides <- function(target, source, slide_file_map) {
   source_pkg <- source$package_dir
   target_pkg <- target$package_dir
@@ -318,7 +365,7 @@ copy_notes_slides <- function(target, source, slide_file_map) {
   for (src_slide_file in names(slide_file_map)) {
     target_slide_file <- slide_file_map[[src_slide_file]]
 
-    # Check if source slide has a notesSlide relationship
+    # Check if source slide has an associated notesSlide
     src_slide_rels_path <- file.path(
       source_pkg, "ppt/slides/_rels", paste0(src_slide_file, ".rels")
     )
@@ -330,22 +377,21 @@ copy_notes_slides <- function(target, source, slide_file_map) {
 
     if (nrow(notes_rows) == 0L) next
 
-    # Ensure target has a notesMaster
+    # A notesMaster must exist before notes slides can be added.
+    # add_notesMaster() is a no-op if one already exists.
     target <- add_notesMaster(target)
 
     notes_target <- basename(notes_rows$target[1L])
     src_notes_path <- file.path(source_pkg, "ppt/notesSlides", notes_target)
     if (!file.exists(src_notes_path)) next
 
-    # Get new notesSlide name
     new_notes_name <- target$notesSlide$get_new_slidename()
     new_notes_path <- file.path(target_pkg, "ppt/notesSlides", new_notes_name)
     dir.create(dirname(new_notes_path), showWarnings = FALSE, recursive = TRUE)
 
-    # Copy notes XML
     file.copy(src_notes_path, new_notes_path, copy.mode = FALSE)
 
-    # Create new .rels for notes slide pointing to target's notesMaster + target slide
+    # Create .rels for the new notes slide: links to notesMaster + parent slide
     notes_rel <- relationship$new()
     notes_rel$add(
       id = "rId1",
@@ -362,7 +408,8 @@ copy_notes_slides <- function(target, source, slide_file_map) {
     dir.create(rels_dir, showWarnings = FALSE, recursive = TRUE)
     notes_rel$write(file.path(rels_dir, paste0(new_notes_name, ".rels")))
 
-    # Add notesSlide relationship to the target slide's .rels
+    # Complete the bidirectional link: add a notesSlide entry to the parent
+    # slide's .rels so PowerPoint can discover the notes from the slide.
     target_slide_rels_path <- file.path(
       target_pkg, "ppt/slides/_rels", paste0(target_slide_file, ".rels")
     )
@@ -375,12 +422,10 @@ copy_notes_slides <- function(target, source, slide_file_map) {
     )
     target_slide_rel$write(target_slide_rels_path)
 
-    # Register in content_type
+    # Register in [Content_Types].xml and internal notes collection
     target$content_type$add_notesSlide(
       partname = file.path("/ppt/notesSlides", new_notes_name)
     )
-
-    # Add to notesSlide collection
     target$notesSlide$add_slide(new_notes_path)
   }
 
@@ -388,7 +433,17 @@ copy_notes_slides <- function(target, source, slide_file_map) {
 }
 
 
-# --- Phase 2: Cross-template layout/master/theme copying --------------------
+# --- Cross-template layout/master/theme copying -----------------------------
+#
+# When a source slide uses a layout that doesn't exist in the target, we must
+# copy the layout XML (and possibly its master + theme) into the target's
+# package directory. This involves:
+#   - Copying XML files into ppt/slideLayouts/, ppt/slideMasters/, ppt/theme/
+#   - Creating/updating .rels files to wire the new parts together
+#   - Registering new parts in [Content_Types].xml
+#   - Adding <p:sldMasterId> entries to presentation.xml
+#   - Renumbering sldLayoutId values to avoid ID collisions
+# --------------------------------------------------------------------------
 
 # Get the next available integer index for files like slideLayout8.xml
 get_next_index <- function(dir, prefix, suffix = "\\.xml$") {
@@ -403,7 +458,11 @@ get_next_index <- function(dir, prefix, suffix = "\\.xml$") {
 }
 
 
-# Pre-processing: copy layouts/masters/themes missing from target
+# Pre-processing: ensure every layout referenced by source slides exists in
+# the target. For each missing layout, either:
+#   (a) the master already exists in target -> copy just the layout, or
+#   (b) the master is also missing -> copy the entire master + theme + all
+#       its layouts as a unit to preserve the master's internal references.
 copy_missing_layouts <- function(target, sources) {
   target_layout_meta <- target$slideLayouts$get_metadata()
   target_master_meta <- target$masterLayouts$get_metadata()
@@ -489,17 +548,18 @@ copy_layout_to_master <- function(
   new_layout_file <- paste0("slideLayout", new_idx, ".xml")
   new_layout_path <- file.path(layouts_dir, new_layout_file)
 
-  # Copy layout XML
   file.copy(
     file.path(source_pkg, "ppt/slideLayouts", src_layout_file),
     new_layout_path,
     copy.mode = FALSE
   )
 
-  # Copy media referenced by layout
+  # Copy any images referenced by the layout's .rels
   copy_part_media(source_pkg, target_pkg, "ppt/slideLayouts", src_layout_file)
 
-  # Create layout .rels preserving original rIds (only remapping master target)
+  # Build the layout's .rels: preserve the original rIds (the layout XML
+  # references them by value) but redirect the slideMaster relationship
+  # to the existing master in the target.
   layout_rel <- relationship$new()
   src_lo_rels_path <- file.path(
     source_pkg, "ppt/slideLayouts/_rels", paste0(src_layout_file, ".rels")
@@ -510,6 +570,7 @@ copy_layout_to_master <- function(
     for (k in seq_len(nrow(src_lo_data))) {
       row <- src_lo_data[k, ]
       if (basename(row$type) == "slideMaster") {
+        # Redirect to the target's master (may differ from source's filename)
         layout_rel$add(
           id = row$id, type = row$type,
           target = paste0("../slideMasters/", target_master_file)
@@ -524,6 +585,7 @@ copy_layout_to_master <- function(
       }
     }
   } else {
+    # No source .rels found — create a minimal one with just the master link
     layout_rel$add(
       id = "rId1",
       type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster",
@@ -534,7 +596,8 @@ copy_layout_to_master <- function(
   dir.create(rels_dir, showWarnings = FALSE, recursive = TRUE)
   layout_rel$write(file.path(rels_dir, paste0(new_layout_file, ".rels")))
 
-  # Add layout reference to the target master's .rels
+  # The master also needs to know about this layout: add a slideLayout
+  # relationship to the master's .rels file.
   master_rels_path <- file.path(
     target_pkg, "ppt/slideMasters/_rels", paste0(target_master_file, ".rels")
   )
@@ -547,7 +610,7 @@ copy_layout_to_master <- function(
   )
   master_rel$write(master_rels_path)
 
-  # Register in content_type
+  # Register the new layout part in [Content_Types].xml
   target$content_type$add_override(setNames(
     "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml",
     paste0("/ppt/slideLayouts/", new_layout_file)
@@ -557,7 +620,11 @@ copy_layout_to_master <- function(
 }
 
 
-# Copy a master + its theme + all its layouts from source to target
+# Copy an entire slide master and all its associated parts from source to
+# target. In OOXML a master consists of three tightly coupled layers:
+#   theme (colors, fonts, effects) -> master (default shapes, background)
+#      -> layouts (placeholder arrangements)
+# All three must be copied together to preserve visual fidelity.
 copy_master_with_layouts <- function(
   target, target_pkg, source_pkg,
   src_master_file, src_master_name, src_layouts_meta
@@ -602,8 +669,10 @@ copy_master_with_layouts <- function(
   # Copy media referenced by master
   copy_part_media(source_pkg, target_pkg, "ppt/slideMasters", src_master_file)
 
-  # Renumber sldLayoutId entries to avoid collisions with existing IDs.
-  # sldMasterId and sldLayoutId share a numeric ID namespace in OOXML.
+  # OOXML gotcha: each master XML contains a <p:sldLayoutIdLst> with numeric
+  # IDs for its layouts. These IDs share a global namespace with the
+  # <p:sldMasterId> entries in presentation.xml. If we copy a master as-is,
+  # its layout IDs may collide with existing ones. Renumber them now.
   new_master_path <- file.path(masters_dir, new_master_file)
   renumber_layout_ids(new_master_path, target_pkg)
 
@@ -686,9 +755,10 @@ copy_master_with_layouts <- function(
     ))
   }
 
-  # --- Create master .rels preserving original rIds ---
-  # The master XML references relationships by rId. We must keep the same rIds
-  # and only remap the targets to the new filenames.
+  # --- Create .rels for the new master ---
+  # The master XML contains r:id references (e.g. for theme, layouts, images).
+  # We must preserve the original rIds and only remap the *targets* to the
+  # new filenames we assigned above (layout_file_map and new_theme_file).
   master_rel <- relationship$new()
   for (k in seq_len(nrow(src_master_rel_data))) {
     row <- src_master_rel_data[k, ]
@@ -726,6 +796,10 @@ copy_master_with_layouts <- function(
   master_rel$write(file.path(master_rels_dir, paste0(new_master_file, ".rels")))
 
   # --- Register master in presentation.xml ---
+  # Two steps: (1) add a relationship in presentation.xml.rels, then
+  # (2) add a <p:sldMasterId> element to the <p:sldMasterIdLst> in
+  # presentation.xml itself. Both are required for PowerPoint to recognize
+  # the new master.
   pres_rels <- target$presentation$relationship()
   master_rid <- paste0("rId", pres_rels$get_next_id())
   pres_rels$add(
@@ -735,12 +809,13 @@ copy_master_with_layouts <- function(
   )
   pres_rels$write(file.path(target_pkg, "ppt/_rels/presentation.xml.rels"))
 
-  # Add <p:sldMasterId> to presentation.xml
+  # Assign a unique numeric ID for the new <p:sldMasterId> element.
+  # OOXML spec: sldMasterId and sldLayoutId values share a single numeric
+  # namespace (typically starting at 2147483648). We must scan ALL existing
+  # IDs across presentation.xml AND all master XML files to avoid collisions.
   pres_xml <- target$presentation$get()
   master_id_list <- xml_find_first(pres_xml, "//p:sldMasterIdLst")
 
-  # Collect ALL existing numeric IDs: sldMasterId + sldLayoutId across all masters.
-  # These share a namespace in OOXML and must be unique.
   existing_master_ids <- as.numeric(xml_attr(
     xml_find_all(pres_xml, "//p:sldMasterIdLst/p:sldMasterId"), "id"
   ))
@@ -759,9 +834,10 @@ copy_master_with_layouts <- function(
   new_master_id <- if (length(all_ids) > 0L) {
     max(all_ids) + 1
   } else {
-    2147483648
+    2147483648 # OOXML convention: master/layout IDs start at 2^31
   }
 
+  # Insert <p:sldMasterId id="..." r:id="rIdN"/> into the master ID list
   new_node <- as_xml_document(sprintf(
     paste0(
       '<p:sldMasterId xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"',
@@ -878,15 +954,21 @@ copy_non_layout_theme_rels <- function(
 }
 
 
-# Renumber sldLayoutId entries in a copied master XML to avoid ID collisions.
-# sldMasterId and sldLayoutId share a numeric namespace in OOXML.
+# Renumber sldLayoutId entries in a newly copied master XML to avoid collisions.
+#
+# Background: In OOXML, each slide master contains a <p:sldLayoutIdLst> with
+# numeric IDs for its layouts. These IDs share a global namespace with the
+# <p:sldMasterId> values in presentation.xml (both are uint32 identifiers
+# starting around 2^31). When we copy a master from a different presentation,
+# its layout IDs may clash with IDs already present in the target. This
+# function scans all existing IDs in the target and reassigns the copied
+# master's layout IDs to start after the current maximum.
 renumber_layout_ids <- function(master_path, target_pkg) {
   ns_p <- c(p = "http://schemas.openxmlformats.org/presentationml/2006/main")
 
-  # Collect all existing numeric IDs across the target
   existing_ids <- numeric(0)
 
-  # From presentation.xml sldMasterIdLst
+  # Gather IDs from presentation.xml (<p:sldMasterId> entries)
   pres_path <- file.path(target_pkg, "ppt/presentation.xml")
   if (file.exists(pres_path)) {
     pres_xml <- read_xml(pres_path)
@@ -896,12 +978,12 @@ renumber_layout_ids <- function(master_path, target_pkg) {
     existing_ids <- c(existing_ids, as.numeric(master_ids))
   }
 
-  # From all existing masters' sldLayoutIdLst (excluding the one being added)
+  # Gather IDs from all OTHER masters' <p:sldLayoutId> entries
   master_files <- list.files(
     file.path(target_pkg, "ppt/slideMasters"),
     pattern = "\\.xml$", full.names = TRUE
   )
-  master_files <- setdiff(master_files, master_path) # exclude current
+  master_files <- setdiff(master_files, master_path)
   for (mf in master_files) {
     mxml <- read_xml(mf)
     lo_ids <- xml_attr(
@@ -914,7 +996,7 @@ renumber_layout_ids <- function(master_path, target_pkg) {
     return(invisible())
   }
 
-  # Read the new master and renumber its layout IDs
+  # Rewrite the copied master's layout IDs to avoid collisions
   master_xml <- read_xml(master_path)
   layout_id_nodes <- xml_find_all(
     master_xml, "//p:sldLayoutIdLst/p:sldLayoutId", ns_p
