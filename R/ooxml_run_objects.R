@@ -186,23 +186,15 @@ to_wml.run_wordtext <- function(x, add_ns = FALSE, ...) {
 #' @export
 #' @title 'Word' computed field
 #' @description Create a 'Word' computed field.
-#' @note
-#' In the previous version, this function was called `run_seqfield`
-#' but the name was wrong and should have been `run_word_field`.
 #' @inheritSection ftext usage
 #' @param field Value for a "Word Computed Field" as a string.
-#' @param seqfield deprecated in favor of `field`.
 #' @param prop formatting text properties returned by [fp_text].
 #' @examples
 #' run_word_field(field = "PAGE  \\* MERGEFORMAT")
 #' run_word_field(field = "Date \\@ \"MMMM d yyyy\"")
 #' @family run functions for reporting
 #' @family Word computed fields
-run_word_field <- function(field, prop = NULL, seqfield = NULL) {
-  if (!is.null(seqfield)) {
-    field <- seqfield
-    message("`seqfield` argument is deprecated in favor of `field`")
-  }
+run_word_field <- function(field, prop = NULL) {
   z <- list(
     field = field,
     pr = prop
@@ -210,10 +202,6 @@ run_word_field <- function(field, prop = NULL, seqfield = NULL) {
   class(z) <- c("run_word_field", "run")
   z
 }
-
-#' @export
-#' @rdname run_word_field
-run_seqfield <- run_word_field
 
 #' @export
 to_wml.run_word_field <- function(x, add_ns = FALSE, ...) {
@@ -770,7 +758,7 @@ to_wml.page_size <- function(x, add_ns = FALSE, ...) {
 #' @examples
 #' section_columns()
 #' @family functions for section definition
-section_columns <- function(widths = c(2.5, 2.5), space = .25, sep = FALSE) {
+section_columns <- function(widths = c(2.5, 2.5), space = 0.25, sep = FALSE) {
   if (length(widths) < 2) {
     stop("length of widths should be at least 2")
   }
@@ -922,7 +910,7 @@ docx_section_type <- c(
 #' @family functions for section definition
 #' @section Illustrations:
 #'
-#' \if{html}{\figure{prop_section_doc_1.png}{options: width=80\%}}
+#' \if{html}{\figure{prop_section_doc_1.png}{options: style="width:80\%;"}}
 prop_section <- function(
   page_size = NULL,
   page_margins = NULL,
@@ -935,7 +923,6 @@ prop_section <- function(
   footer_even = NULL,
   footer_first = NULL
 ) {
-
   z <- list()
 
   if (is.null(page_size)) {
@@ -1014,8 +1001,9 @@ prop_section <- function(
 to_wml.prop_section <- function(x, add_ns = FALSE, ...) {
   paste0(
     "<w:sectPr",
-    if (add_ns)
-      " xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"",
+    if (add_ns) {
+      " xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\""
+    },
     ">",
     if (!is.null(x$header_default)) {
       paste0(
@@ -1075,7 +1063,11 @@ to_wml.prop_section <- function(x, add_ns = FALSE, ...) {
     if (!is.null(x$page_size)) to_wml(x$page_size, add_ns = add_ns),
     if (!is.null(x$header_first) || !is.null(x$footer_first)) "<w:titlePg/>",
     if (!is.null(x$type)) paste0("<w:type w:val=\"", x$type, "\"/>"),
-    if (!is.null(x$section_columns)) to_wml(x$section_columns, add_ns = add_ns) else "<w:cols/>",
+    if (!is.null(x$section_columns)) {
+      to_wml(x$section_columns, add_ns = add_ns)
+    } else {
+      "<w:cols/>"
+    },
     "</w:sectPr>"
   )
 }
@@ -1128,8 +1120,8 @@ to_wml.prop_section <- function(x, add_ns = FALSE, ...) {
 #' @family run functions for reporting
 external_img <- function(
   src,
-  width = .5,
-  height = .2,
+  width = 0.5,
+  height = 0.2,
   unit = "in",
   guess_size = FALSE,
   alt = ""
@@ -1146,7 +1138,9 @@ external_img <- function(
   height <- convin(unit = unit, x = height)
 
   if (length(src) > 1) {
-    if (length(width) == 1) width <- rep(width, length(src))
+    if (length(width) == 1) {
+      width <- rep(width, length(src))
+    }
     if (length(height) == 1) height <- rep(height, length(src))
   }
 
@@ -1173,8 +1167,6 @@ external_img <- function(
   attr(src, "alt") <- alt
   src
 }
-
-
 
 
 #' @export
@@ -1210,7 +1202,7 @@ temp_blipfill <- function(value, ns = "p") {
     rsvg::rsvg_png(svg_src, file = img_src)
   } else {
     img_src <- tempfile(
-      fileext = gsub("(.*)(\\.[a-zA-Z0-0]+)$", "\\2", as.character(value))
+      fileext = gsub("(.*)(\\.[a-zA-Z0-9]+)$", "\\2", as.character(value))
     )
     file.copy(as.character(value), to = img_src)
   }
@@ -1417,22 +1409,22 @@ to_html.external_img <- function(x, ...) {
 #' @seealso [external_img], [body_add], [fpar], [rtf_doc], [rtf_add]
 #' @family run functions for reporting
 floating_external_img <- function(
-    src,
-    width = .5,
-    height = .2,
-    pos_x = 0,
-    pos_y = 0,
-    pos_h_from = "margin",
-    pos_v_from = "margin",
-    wrap_type = "square",
-    wrap_side = "bothSides",
-    wrap_dist_top = 0,
-    wrap_dist_bottom = 0,
-    wrap_dist_left = 0.125,
-    wrap_dist_right = 0.125,
-    unit = "in",
-    guess_size = FALSE,
-    alt = ""
+  src,
+  width = 0.5,
+  height = 0.2,
+  pos_x = 0,
+  pos_y = 0,
+  pos_h_from = "margin",
+  pos_v_from = "margin",
+  wrap_type = "square",
+  wrap_side = "bothSides",
+  wrap_dist_top = 0,
+  wrap_dist_bottom = 0,
+  wrap_dist_left = 0.125,
+  wrap_dist_right = 0.125,
+  unit = "in",
+  guess_size = FALSE,
+  alt = ""
 ) {
   # note: should it be vectorized
   check_src <- all(grepl("^rId", src)) || all(file.exists(src))
@@ -1443,9 +1435,15 @@ floating_external_img <- function(
   }
 
   # Validate positioning parameters
-  pos_h_from <- match.arg(pos_h_from, c("margin", "page", "column", "character"))
+  pos_h_from <- match.arg(
+    pos_h_from,
+    c("margin", "page", "column", "character")
+  )
   pos_v_from <- match.arg(pos_v_from, c("margin", "page", "paragraph", "line"))
-  wrap_type <- match.arg(wrap_type, c("square", "topAndBottom", "through", "tight", "none"))
+  wrap_type <- match.arg(
+    wrap_type,
+    c("square", "topAndBottom", "through", "tight", "none")
+  )
   wrap_side <- match.arg(wrap_side, c("bothSides", "left", "right", "largest"))
 
   width <- convin(unit = unit, x = width)
@@ -1454,9 +1452,15 @@ floating_external_img <- function(
   pos_y <- convin(unit = unit, x = pos_y)
 
   if (length(src) > 1) {
-    if (length(width) == 1) width <- rep(width, length(src))
-    if (length(height) == 1) height <- rep(height, length(src))
-    if (length(pos_x) == 1) pos_x <- rep(pos_x, length(src))
+    if (length(width) == 1) {
+      width <- rep(width, length(src))
+    }
+    if (length(height) == 1) {
+      height <- rep(height, length(src))
+    }
+    if (length(pos_x) == 1) {
+      pos_x <- rep(pos_x, length(src))
+    }
     if (length(pos_y) == 1) pos_y <- rep(pos_y, length(src))
   }
 
@@ -1480,7 +1484,12 @@ floating_external_img <- function(
 
   class(src) <- c("floating_external_img", "external_img", "cot", "run")
   attr(src, "dims") <- list(width = width, height = height)
-  attr(src, "pos") <- list(x = pos_x, y = pos_y, h_from = pos_h_from, v_from = pos_v_from)
+  attr(src, "pos") <- list(
+    x = pos_x,
+    y = pos_y,
+    h_from = pos_h_from,
+    v_from = pos_v_from
+  )
   attr(src, "wrap") <- list(
     type = wrap_type,
     side = wrap_side,
@@ -1539,8 +1548,14 @@ to_wml.floating_external_img <- function(x, add_ns = FALSE, ...) {
     wrap_type,
     "square" = sprintf("<wp:wrapSquare wrapText=\"%s\"/>", wrap_side),
     "topAndBottom" = "<wp:wrapTopAndBottom/>",
-    "through" = sprintf("<wp:wrapThrough wrapText=\"%s\"><wp:wrapPolygon edited=\"0\"><wp:start x=\"0\" y=\"0\"/></wp:wrapPolygon></wp:wrapThrough>", wrap_side),
-    "tight" = sprintf("<wp:wrapTight wrapText=\"%s\"><wp:wrapPolygon edited=\"0\"><wp:start x=\"0\" y=\"0\"/></wp:wrapPolygon></wp:wrapTight>", wrap_side),
+    "through" = sprintf(
+      "<wp:wrapThrough wrapText=\"%s\"><wp:wrapPolygon edited=\"0\"><wp:start x=\"0\" y=\"0\"/></wp:wrapPolygon></wp:wrapThrough>",
+      wrap_side
+    ),
+    "tight" = sprintf(
+      "<wp:wrapTight wrapText=\"%s\"><wp:wrapPolygon edited=\"0\"><wp:start x=\"0\" y=\"0\"/></wp:wrapPolygon></wp:wrapTight>",
+      wrap_side
+    ),
     "none" = "<wp:wrapNone/>"
   )
 
@@ -1549,11 +1564,22 @@ to_wml.floating_external_img <- function(x, add_ns = FALSE, ...) {
     "<w:rPr/><w:drawing xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:wp14=\"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing\">",
     sprintf(
       "<wp:anchor distT=\"%s\" distB=\"%s\" distL=\"%s\" distR=\"%s\" simplePos=\"0\" relativeHeight=\"251658240\" behindDoc=\"0\" locked=\"0\" layoutInCell=\"1\" allowOverlap=\"1\">",
-      dist_t_emu, dist_b_emu, dist_l_emu, dist_r_emu
+      dist_t_emu,
+      dist_b_emu,
+      dist_l_emu,
+      dist_r_emu
     ),
     "<wp:simplePos x=\"0\" y=\"0\"/>",
-    sprintf("<wp:positionH relativeFrom=\"%s\"><wp:posOffset>%s</wp:posOffset></wp:positionH>", pos_h_from, pos_x_emu),
-    sprintf("<wp:positionV relativeFrom=\"%s\"><wp:posOffset>%s</wp:posOffset></wp:positionV>", pos_v_from, pos_y_emu),
+    sprintf(
+      "<wp:positionH relativeFrom=\"%s\"><wp:posOffset>%s</wp:posOffset></wp:positionH>",
+      pos_h_from,
+      pos_x_emu
+    ),
+    sprintf(
+      "<wp:positionV relativeFrom=\"%s\"><wp:posOffset>%s</wp:posOffset></wp:positionV>",
+      pos_v_from,
+      pos_y_emu
+    ),
     sprintf("<wp:extent cx=\"%s\" cy=\"%s\"/>", cx, cy),
     "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>",
     wrap_element,

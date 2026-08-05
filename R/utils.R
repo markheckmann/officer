@@ -1,27 +1,27 @@
 #' @importFrom xml2 xml_attr<- xml_name<- xml_text<- as_list as_xml_document read_xml
-#' write_xml xml_add_child xml_add_parent xml_add_sibling xml_attr xml_attrs xml_child
-#' xml_children xml_find_all xml_find_first xml_length xml_missing xml_name xml_ns
-#' xml_path xml_remove xml_replace xml_set_attr xml_set_attrs xml_text
+#' @importFrom xml2 write_xml xml_add_child xml_add_parent xml_add_sibling xml_attr xml_attrs xml_child
+#' @importFrom xml2 xml_children xml_find_all xml_find_first xml_length xml_missing xml_name xml_ns
+#' @importFrom xml2 xml_path xml_remove xml_replace xml_set_attr xml_set_attrs xml_text
 #' @importFrom stats setNames
 
-
-read_xfrm <- function(nodeset, file, name){
-
-  if( length(nodeset) < 1 ){
-    return(data.frame(stringsAsFactors = FALSE, type = character(0),
-                   id = character(0),
-                   ph_label = character(0),
-                   ph = character(0),
-                   file = character(0),
-                   offx = integer(0),
-                   offy = integer(0),
-                   cx = integer(0),
-                   cy = integer(0),
-                   rotation = integer(0),
-                   name = character(0),
-                   fld_id = character(0),
-                   fld_type = character(0)
-                   ))
+read_xfrm <- function(nodeset, file, name) {
+  if (length(nodeset) < 1) {
+    return(data.frame(
+      stringsAsFactors = FALSE,
+      type = character(0),
+      id = character(0),
+      ph_label = character(0),
+      ph = character(0),
+      file = character(0),
+      offx = integer(0),
+      offy = integer(0),
+      cx = integer(0),
+      cy = integer(0),
+      rotation = integer(0),
+      name = character(0),
+      fld_id = character(0),
+      fld_type = character(0)
+    ))
   }
 
   ph <- xml_child(nodeset, "p:nvSpPr/p:nvPr/p:ph")
@@ -37,18 +37,22 @@ read_xfrm <- function(nodeset, file, name){
   fld_id <- xml_attr(xml_child(nodeset, "/p:txBody/a:p/a:fld"), "id")
   fld_type <- xml_attr(xml_child(nodeset, "/p:txBody/a:p/a:fld"), "type")
 
-  data.frame(stringsAsFactors = FALSE, type = type, id = id,
-          ph_label = label,
-          ph = as.character(ph),
-          file = basename(file),
-          offx = as.integer(xml_attr(off, "x")),
-          offy = as.integer(xml_attr(off, "y")),
-          cx = as.integer(xml_attr(ext, "cx")),
-          cy = as.integer(xml_attr(ext, "cy")),
-          rotation = as.integer(xml_attr(rot, "rot")),
-          fld_id,
-          fld_type,
-          name = name )
+  data.frame(
+    stringsAsFactors = FALSE,
+    type = type,
+    id = id,
+    ph_label = label,
+    ph = as.character(ph),
+    file = basename(file),
+    offx = as.integer(xml_attr(off, "x")),
+    offy = as.integer(xml_attr(off, "y")),
+    cx = as.integer(xml_attr(ext, "cx")),
+    cy = as.integer(xml_attr(ext, "cy")),
+    rotation = as.integer(xml_attr(rot, "rot")),
+    fld_id,
+    fld_type,
+    name = name
+  )
 }
 
 
@@ -56,7 +60,8 @@ fortify_master_xfrm <- function(master_xfrm) {
   master_xfrm <- as.data.frame(master_xfrm)
   has_type <- grepl("type=", master_xfrm$ph)
   master_xfrm <- master_xfrm[has_type, ]
-  if (nrow(master_xfrm) > 0) {    # see #597
+  if (nrow(master_xfrm) > 0) {
+    # see #597
     list_xfrm <- split(master_xfrm, master_xfrm$file)
     list_xfrm <- lapply(list_xfrm, function(x) {
       x[!duplicated(x$type), , drop = FALSE]
@@ -64,12 +69,16 @@ fortify_master_xfrm <- function(master_xfrm) {
     master_xfrm <- do.call("rbind", list_xfrm)
   }
 
-  tmp_names <- names(master_xfrm)
-
-  old_ <- c("offx", "offy", "cx", "cy", "fld_id", "fld_type", "name")
-  new_ <- c("offx_ref", "offy_ref", "cx_ref", "cy_ref", "fld_id_ref", "fld_type_ref", "master_name")
-  tmp_names[match(old_, tmp_names)] <- new_
-  names(master_xfrm) <- tmp_names
+  master_xfrm <- dplyr::rename(
+    master_xfrm,
+    offx_ref = "offx",
+    offy_ref = "offy",
+    cx_ref = "cx",
+    cy_ref = "cy",
+    fld_id_ref = "fld_id",
+    fld_type_ref = "fld_type",
+    master_name = "name"
+  )
   master_xfrm$id <- NULL
   master_xfrm$ph <- NULL
   master_xfrm$ph_label <- NULL
@@ -93,13 +102,18 @@ xfrmize <- function(slide_xfrm, master_xfrm) {
   master_key_id <- paste0(master_xfrm$file, master_xfrm$type)
 
   slide_xfrm_no_match <- x[!slide_key_id %in% master_key_id, ]
-  slide_xfrm_no_match <- merge(slide_xfrm_no_match,
+  slide_xfrm_no_match <- merge(
+    slide_xfrm_no_match,
     master_ref,
-    by.x = "master_file", by.y = "file",
-    all.x = TRUE, all.y = FALSE
+    by.x = "master_file",
+    by.y = "file",
+    all.x = TRUE,
+    all.y = FALSE
   )
 
-  x <- merge(x, master_xfrm,
+  x <- merge(
+    x,
+    master_xfrm,
     by.x = c("master_file", "type"),
     by.y = c("file", "type"),
     all = FALSE
@@ -117,12 +131,30 @@ xfrmize <- function(slide_xfrm, master_xfrm) {
 
   x <- rbind(x, slide_xfrm_no_match, stringsAsFactors = FALSE)
 
-  i_master <- get_file_index(x$master_file)
-  i_layout <- get_file_index(x$file)
-  x <- x[order(i_master, i_layout, x$offy, x$offx), , drop = FALSE] # intuitive sorting: top -> bottom, left -> right
-  x <- x[!(is.na(x$offx) | is.na(x$offy) | is.na(x$cx) | is.na(x$cy)),  ]
+  # intuitive sorting: top -> bottom, left -> right
+  x$.i_master <- get_file_index(x$master_file)
+  x$.i_layout <- get_file_index(x$file)
+  x <- arrange(
+    x,
+    .data$.i_master,
+    .data$.i_layout,
+    .data$offy,
+    .data$offx
+  )
+  x$.i_master <- NULL
+  x$.i_layout <- NULL
+  x <- filter(
+    x,
+    !(is.na(.data$offx) | is.na(.data$offy) | is.na(.data$cx) | is.na(.data$cy))
+  )
 
-  x$type_idx <- stats::ave(x$type, x$master_file, x$file, x$type, FUN = seq_along)
+  x$type_idx <- stats::ave(
+    x$type,
+    x$master_file,
+    x$file,
+    x$type,
+    FUN = seq_along
+  )
   x$type_idx <- as.numeric(x$type_idx) # NB: ave returns character
 
   x$id <- as.integer(x$id)
@@ -132,26 +164,38 @@ xfrmize <- function(slide_xfrm, master_xfrm) {
 }
 
 
-read_theme_colors <- function(doc, theme){
-
+read_theme_colors <- function(doc, theme) {
   nodes <- xml_find_all(doc, "//a:clrScheme/*")
 
   names_ <- xml_name(nodes)
-  col_types_ <- xml_name(xml_children(nodes) )
+  col_types_ <- xml_name(xml_children(nodes))
   vals <- xml_attr(xml_children(nodes), "val")
   last_colors_ <- xml_attr(xml_children(nodes), "lastClr")
-  vals <- ifelse(col_types_ == "srgbClr", paste0("#", vals), paste0("#", last_colors_) )
-  data.frame(stringsAsFactors = FALSE, name = names_, type = col_types_, value = vals, theme = theme)
+  vals <- ifelse(
+    col_types_ == "srgbClr",
+    paste0("#", vals),
+    paste0("#", last_colors_)
+  )
+  data.frame(
+    stringsAsFactors = FALSE,
+    name = names_,
+    type = col_types_,
+    value = vals,
+    theme = theme
+  )
 }
 
 
-
-characterise_df <- function(x){
+characterise_df <- function(x) {
   names(x) <- htmlEscapeCopy(names(x))
-  x <- lapply(x, function( x ) {
-    if( is.character(x) ) x
-    else if( is.factor(x) ) as.character(x)
-    else gsub("(^ | $)+", "", format(x))
+  x <- lapply(x, function(x) {
+    if (is.character(x)) {
+      x
+    } else if (is.factor(x)) {
+      as.character(x)
+    } else {
+      gsub("(^ | $)+", "", format(x))
+    }
   })
   data.frame(x, stringsAsFactors = FALSE, check.names = FALSE)
 }
@@ -159,45 +203,47 @@ characterise_df <- function(x){
 
 xpath_content_selector <- "*[self::p:cxnSp or self::p:sp or self::p:graphicFrame or self::p:grpSp or self::p:pic]"
 
-as_xpath_content_sel <- function(prefix){
+as_xpath_content_sel <- function(prefix) {
   paste0(prefix, xpath_content_selector)
 }
 
 
-between <- function(x, left, right ){
+between <- function(x, left, right) {
   x >= left & x <= right
 }
 
 
-
-simple_lag <- function( x, default=0 ){
-  c(default, x[-length(x)])
-}
-
 rbind_match_columns <- function(list_df) {
-
   col <- unique(unlist(lapply(list_df, colnames)))
-  x <- Filter(function(x) nrow(x)>0, list_df)
-  x <- lapply(x, function(x, col) {
-    x[, setdiff(col, colnames(x))] <- NA
-    x
-  }, col = col)
+  x <- Filter(function(x) nrow(x) > 0, list_df)
+  x <- lapply(
+    x,
+    function(x, col) {
+      x[, setdiff(col, colnames(x))] <- NA
+      x
+    },
+    col = col
+  )
   do.call(rbind, x)
 }
 
-set_row_span <- function( row_details ){
+set_row_span <- function(row_details) {
   row_details$first[!row_details$first & !row_details$row_merge] <- TRUE
   row_details$row_merge <- NULL
 
   row_details <- split(row_details, row_details$cell_id)
 
-  row_details <- mapply(function(dat){
-    rowspan_values_at_breaks <- rle(cumsum(dat$first))$lengths
-    rowspan_pos_at_breaks <- which(dat$first)
-    dat$row_span <- 0L
-    dat$row_span[rowspan_pos_at_breaks] <- rowspan_values_at_breaks
-    dat
-  }, row_details, SIMPLIFY = FALSE)
+  row_details <- mapply(
+    function(dat) {
+      rowspan_values_at_breaks <- rle(cumsum(dat$first))$lengths
+      rowspan_pos_at_breaks <- which(dat$first)
+      dat$row_span <- 0L
+      dat$row_span[rowspan_pos_at_breaks] <- rowspan_values_at_breaks
+      dat
+    },
+    row_details,
+    SIMPLIFY = FALSE
+  )
   row_details <- rbind_match_columns(row_details)
   row_details$first <- NULL
   row_details
@@ -207,21 +253,26 @@ set_row_span <- function( row_details ){
 #' @importFrom grDevices col2rgb rgb
 is.color = function(x) {
   # http://stackoverflow.com/a/13290832/3315962
-  out = sapply(x, function( x ) {
-    tryCatch( is.matrix( col2rgb( x ) ), error = function( e ) F )
-  })
+  out = vapply(
+    x,
+    function(x) {
+      tryCatch(is.matrix(col2rgb(x)), error = function(e) FALSE)
+    },
+    logical(1)
+  )
 
   nout <- names(out)
-  if( !is.null(nout) && any( is.na( nout ) ) )
-    out[is.na( nout )] = FALSE
+  if (!is.null(nout) && anyNA(nout)) {
+    out[is.na(nout)] = FALSE
+  }
 
   out
 }
 
-correct_id <- function(doc, int_id){
+correct_id <- function(doc, int_id) {
   all_uid <- xml_find_all(doc, "//*[@id]")
-  for(z in seq_along(all_uid) ){
-    if(!grepl("[^0-9]", xml_attr(all_uid[[z]], "id"))){
+  for (z in seq_along(all_uid)) {
+    if (!grepl("[^0-9]", xml_attr(all_uid[[z]], "id"))) {
       xml_attr(all_uid[[z]], "id") <- int_id
       int_id <- int_id + 1
     }
@@ -230,14 +281,19 @@ correct_id <- function(doc, int_id){
 }
 
 
-check_bookmark_id <- function(bkm){
-  if(!is.null(bkm)){
+check_bookmark_id <- function(bkm) {
+  if (!is.null(bkm)) {
     invalid_bkm <- is.character(bkm) &&
       length(bkm) == 1 &&
       nchar(bkm) > 0 &&
       grepl("[^:[:alnum:]_-]+", bkm)
-    if(invalid_bkm){
-      stop("bkm [", bkm, "] should only contain alphanumeric characters, ':', '-' and '_'.", call. = FALSE)
+    if (invalid_bkm) {
+      stop(
+        "bkm [",
+        bkm,
+        "] should only contain alphanumeric characters, ':', '-' and '_'.",
+        call. = FALSE
+      )
     }
   }
   bkm
@@ -263,7 +319,12 @@ is_doc_open <- function(file) {
 #   get_file_index(files)
 #
 get_file_index <- function(file) {
-  x <- sub(pattern = ".+?(\\d+).xml$", replacement = "\\1", x = basename(file), ignore.case = TRUE)
+  x <- sub(
+    pattern = ".+?(\\d+).xml$",
+    replacement = "\\1",
+    x = basename(file),
+    ignore.case = TRUE
+  )
   as.numeric(x)
 }
 
@@ -301,7 +362,7 @@ sort_dataframe_by_index <- function(df, ...) {
   l <- lapply(sort_columns, function(.col) {
     get_file_index(df[[.col]])
   })
-  df[do.call(order, l), , drop =FALSE]
+  df[do.call(order, l), , drop = FALSE]
 }
 
 
@@ -327,11 +388,18 @@ is_rpptx <- function(x) inherits(x, "rpptx")
 stop_if_not_class <- function(x, class, arg = NULL) {
   check <- inherits(x, what = class)
   if (!check) {
-    msg_arg <- ifelse(is.null(arg), "Incorrect input.", "Incorrect input for {.arg {arg}}")
-    cli::cli_abort(c(
-      msg_arg,
-      "x" = "Expected {.cls {class}} but got {.cls {class(x)[1]}}"
-    ), call = NULL)
+    msg_arg <- ifelse(
+      is.null(arg),
+      "Incorrect input.",
+      "Incorrect input for {.arg {arg}}"
+    )
+    cli::cli_abort(
+      c(
+        msg_arg,
+        "x" = "Expected {.cls {class}} but got {.cls {class(x)[1]}}"
+      ),
+      call = NULL
+    )
   }
 }
 
@@ -347,11 +415,18 @@ stop_if_not_rpptx <- function(x, arg = NULL) {
 stop_if_not_integerish <- function(x, arg = NULL) {
   check <- is_integerish(x)
   if (!check) {
-    msg_arg <- ifelse(is.null(arg), "Incorrect input.", "Incorrect input for {.arg {arg}}")
-    cli::cli_abort(c(
-      msg_arg,
-      "x" = "Expected integerish values but got {.cls {class(x)[1]}}"
-    ), call = NULL)
+    msg_arg <- ifelse(
+      is.null(arg),
+      "Incorrect input.",
+      "Incorrect input for {.arg {arg}}"
+    )
+    cli::cli_abort(
+      c(
+        msg_arg,
+        "x" = "Expected integerish values but got {.cls {class(x)[1]}}"
+      ),
+      call = NULL
+    )
   }
 }
 
@@ -364,7 +439,12 @@ stop_if_not_integerish <- function(x, arg = NULL) {
 #' @param call Environment to display in error message. Defaults to caller env.
 #'   Set `NULL` to suppress (see [cli::cli_abort]).
 #' @keywords internal
-stop_if_not_in_slide_range <- function(x, idx, arg = NULL, call = parent.frame()) {
+stop_if_not_in_slide_range <- function(
+  x,
+  idx,
+  arg = NULL,
+  call = parent.frame()
+) {
   stop_if_not_rpptx(x)
   stop_if_not_integerish(idx)
 
@@ -377,8 +457,13 @@ stop_if_not_in_slide_range <- function(x, idx, arg = NULL, call = parent.frame()
     return(invisible(NULL))
   }
   argname <- ifelse(is.null(arg), "", "of {.arg {arg}} ")
-  part_1 <- paste0("{n_outside} index{?es} ", argname, "outside slide range: {.val {idx_outside}}")
-  part_2 <- ifelse(n_slides == 0,
+  part_1 <- paste0(
+    "{n_outside} index{?es} ",
+    argname,
+    "outside slide range: {.val {idx_outside}}"
+  )
+  part_2 <- ifelse(
+    n_slides == 0,
     "Presentation has no slides!",
     "Slide indexes must be in the range [{min(idx_available)}..{max(idx_available)}]"
   )
@@ -389,14 +474,16 @@ stop_if_not_in_slide_range <- function(x, idx, arg = NULL, call = parent.frame()
 check_unit <- function(unit, choices, several.ok = FALSE) {
   if (!several.ok && length(unit) != 1) {
     cli::cli_abort(
-      c("{.arg unit} is not length 1.",
+      c(
+        "{.arg unit} is not length 1.",
         "x" = "{.arg unit} must be {.emph a string}."
       )
     )
   }
   if (!unit %in% choices) {
     cli::cli_abort(
-      c("{.arg unit} should be one of {.or {choices}}.",
+      c(
+        "{.arg unit} should be one of {.or {choices}}.",
         "x" = "{.arg unit} was {.emph {unit}\"}."
       )
     )
@@ -427,11 +514,19 @@ check_unit <- function(unit, choices, several.ok = FALSE) {
 #' update_named_defaults(2, defaults)
 #' update_named_defaults(NULL, defaults, default_if_null = TRUE)
 #'
-update_named_defaults <- function(x, default, argname = "x", default_if_null = TRUE, partial = TRUE, as_list = TRUE) {
-
+update_named_defaults <- function(
+  x,
+  default,
+  argname = "x",
+  default_if_null = TRUE,
+  partial = TRUE,
+  as_list = TRUE
+) {
   if (default_if_null && is.null(x)) {
     res <- as.list(default)
-    if (!as_list) res <- unlist(res)
+    if (!as_list) {
+      res <- unlist(res)
+    }
     return(res)
   }
 
@@ -440,9 +535,11 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
 
   if (!is_named(default)) {
     cli::cli_abort(
-      c("Some default vector elements have no names",
+      c(
+        "Some default vector elements have no names",
         "x" = "{.arg default} must be a named vector"
-      ), call = NULL
+      ),
+      call = NULL
     )
   }
   x <- as.list(x)
@@ -450,10 +547,13 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
   len_default <- length(default)
   names_default <- names(default)
   if (len_x > len_default) {
-    cli::cli_abort(c(
-      "Length of {.arg {argname}} ({.val {len_x}}) exceeds length of {.arg default} ({.val {len_default}})",
-      "x" = "Length of {.arg x} must be smaller or equal to the length of {.arg default}"
-    ), call = NULL)
+    cli::cli_abort(
+      c(
+        "Length of {.arg {argname}} ({.val {len_x}}) exceeds length of {.arg default} ({.val {len_default}})",
+        "x" = "Length of {.arg x} must be smaller or equal to the length of {.arg default}"
+      ),
+      call = NULL
+    )
   }
 
   # unnamed case => convert to named case
@@ -463,27 +563,37 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
       len_x <- length(x)
     }
     if (len_x != len_default) {
-      cli::cli_abort(c(
-        "{.arg {argname}} has incorrect length ({len_x})",
-        "x" = "If {.arg {argname}} has no names, it must be length 1 or the length of {.arg default} ({len_default})"
-      ), call = NULL)
+      cli::cli_abort(
+        c(
+          "{.arg {argname}} has incorrect length ({len_x})",
+          "x" = "If {.arg {argname}} has no names, it must be length 1 or the length of {.arg default} ({len_default})"
+        ),
+        call = NULL
+      )
     }
     names(x) <- names_default
   }
 
   # named case
-  if (partial) { # => partial name matching
+  if (partial) {
+    # => partial name matching
     matched <- pmatch(names(x), names_default, duplicates.ok = TRUE)
-  } else { # exact name matching
+  } else {
+    # exact name matching
     matched <- match(names(x), names_default, nomatch = NA)
   }
   nms_new <- ifelse(is.na(matched), NA, names_default[matched])
   i_na <- is.na(nms_new)
 
   if (any(i_na)) {
-    msg_partial <- ifelse(partial, "Partial name matching is supported", "Partial name matching is not enabled")
+    msg_partial <- ifelse(
+      partial,
+      "Partial name matching is supported",
+      "Partial name matching is not enabled"
+    )
     cli::cli_abort(
-      c("Found {sum(i_na)} unknown name{?s} in {.arg {argname}}: {.val {names(x)[i_na]}}",
+      c(
+        "Found {sum(i_na)} unknown name{?s} in {.arg {argname}}: {.val {names(x)[i_na]}}",
         "x" = "{.arg {argname}} understands {.val {names_default}}",
         "i" = cli::col_silver(msg_partial)
       ),
@@ -494,7 +604,8 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
   ii_dupes <- duplicated(nms_new)
   if (any(ii_dupes)) {
     cli::cli_abort(
-      c("Duplicate entries in {.arg location}: {.val {unique(nms_new[ii_dupes])}}",
+      c(
+        "Duplicate entries in {.arg location}: {.val {unique(nms_new[ii_dupes])}}",
         "x" = "Each name in {.arg location} must be unique",
         "i" = cli::col_silver("Partial name matching is supported")
       ),
@@ -503,7 +614,9 @@ update_named_defaults <- function(x, default, argname = "x", default_if_null = T
   }
   x <- setNames(x, nms_new)
   res <- utils::modifyList(x = default, val = as.list(x), keep.null = TRUE)
-  if (!as_list) res <- unlist(res)
+  if (!as_list) {
+    res <- unlist(res)
+  }
   res
 }
 
@@ -526,13 +639,12 @@ extract_args_from_dots <- function(args, ..., .dots = NULL) {
 # htmlEscapeCopy ----
 
 htmlEscapeCopy <- local({
-
   .htmlSpecials <- list(
     `&` = '&amp;',
     `<` = '&lt;',
     `>` = '&gt;'
   )
-  .htmlSpecialsPattern <- paste(names(.htmlSpecials), collapse='|')
+  .htmlSpecialsPattern <- paste(names(.htmlSpecials), collapse = '|')
   .htmlSpecialsAttrib <- c(
     .htmlSpecials,
     `'` = '&#39;',
@@ -540,20 +652,26 @@ htmlEscapeCopy <- local({
     `\r` = '&#13;',
     `\n` = '&#10;'
   )
-  .htmlSpecialsPatternAttrib <- paste(names(.htmlSpecialsAttrib), collapse='|')
-  function(text, attribute=FALSE) {
-    pattern <- if(attribute)
+  .htmlSpecialsPatternAttrib <- paste(
+    names(.htmlSpecialsAttrib),
+    collapse = '|'
+  )
+  function(text, attribute = FALSE) {
+    pattern <- if (attribute) {
       .htmlSpecialsPatternAttrib
-    else
+    } else {
       .htmlSpecialsPattern
+    }
     text <- enc2utf8(as.character(text))
     # Short circuit in the common case that there's nothing to escape
-    if (!any(grepl(pattern, text, useBytes = TRUE)))
+    if (!any(grepl(pattern, text, useBytes = TRUE))) {
       return(text)
-    specials <- if(attribute)
+    }
+    specials <- if (attribute) {
       .htmlSpecialsAttrib
-    else
+    } else {
       .htmlSpecials
+    }
     for (chr in names(specials)) {
       text <- gsub(chr, specials[[chr]], text, fixed = TRUE, useBytes = TRUE)
     }

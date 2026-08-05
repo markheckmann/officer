@@ -251,9 +251,15 @@ fp_text <- function(
     out$font.family <- font.family
   }
 
-  if (is.null(cs.family)) cs.family <- font.family
-  if (is.null(eastasia.family)) eastasia.family <- font.family
-  if (is.null(hansi.family)) hansi.family <- font.family
+  if (is.null(cs.family)) {
+    cs.family <- font.family
+  }
+  if (is.null(eastasia.family)) {
+    eastasia.family <- font.family
+  }
+  if (is.null(hansi.family)) {
+    hansi.family <- font.family
+  }
   if (is_character(cs.family)) {
     out$cs.family <- cs.family
   }
@@ -702,10 +708,18 @@ as.character.fp_tabs <- function(x, ...) {
 #' @param tabs NULL (default) for no tabulation marks setting
 #' or an object returned by [fp_tabs()]. Note this can only have effect with Word
 #' or RTF outputs.
+#' @param first_line first-line indent in points (positive moves the
+#' first line to the right). `NA` (default) leaves the first-line indent
+#' unset. Mutually exclusive with `hanging` -- if both are provided,
+#' `hanging` wins.
+#' @param hanging hanging indent in points (positive moves the first
+#' line to the left relative to the following lines). `NA` (default)
+#' leaves the hanging indent unset.
 #' @param word_style Word paragraph style name
 #' @return a `fp_par` object
 #' @examples
 #' fp_par(text.align = "center", padding = 5)
+#' fp_par(padding.left = 40, hanging = 20)
 #' @export
 #' @family functions for defining formatting properties
 #' @seealso [fpar]
@@ -725,6 +739,8 @@ fp_par <- function(
   shading.color = "transparent",
   keep_with_next = FALSE,
   tabs = NULL,
+  first_line = NA,
+  hanging = NA,
   word_style = "Normal"
 ) {
   out <- list()
@@ -775,7 +791,6 @@ fp_par <- function(
     )
   }
 
-
   if (!missing(border.top) && !isFALSE(border.top)) {
     out <- check_set_border(obj = out, border.top)
   }
@@ -795,10 +810,28 @@ fp_par <- function(
 
   out <- check_set_chr(obj = out, word_style)
 
+  out$first_line <- validate_indent(first_line, "first_line")
+  out$hanging <- validate_indent(hanging, "hanging")
+
   out$keep_with_next <- keep_with_next
   class(out) <- "fp_par"
 
   out
+}
+
+validate_indent <- function(value, name) {
+  if (is.null(value) || (length(value) == 1 && is.na(value))) {
+    return(NA_real_)
+  }
+  if (!is.numeric(value) || length(value) != 1) {
+    stop(
+      "`",
+      name,
+      "` must be NA or a single numeric value (points).",
+      call. = FALSE
+    )
+  }
+  as.numeric(value)
 }
 
 
@@ -808,23 +841,28 @@ fp_par <- function(
 #' undefined properties will inherit from the default settings.
 #' @export
 fp_par_lite <- function(
-    text.align = NA,
-    padding = NA,
-    line_spacing = NA,
-    border = FALSE,
-    padding.bottom = NA,
-    padding.top = NA,
-    padding.left = NA,
-    padding.right = NA,
-    border.bottom = FALSE,
-    border.left = FALSE,
-    border.top = FALSE,
-    border.right = FALSE,
-    shading.color = NA,
-    keep_with_next = NA,
-    tabs = FALSE,
-    word_style = NA
+  text.align = NA,
+  padding = NA,
+  line_spacing = NA,
+  border = FALSE,
+  padding.bottom = NA,
+  padding.top = NA,
+  padding.left = NA,
+  padding.right = NA,
+  border.bottom = FALSE,
+  border.left = FALSE,
+  border.top = FALSE,
+  border.right = FALSE,
+  shading.color = NA,
+  keep_with_next = NA,
+  tabs = FALSE,
+  first_line = NA,
+  hanging = NA,
+  word_style = NA
 ) {
+  if (isFALSE(tabs)) {
+    tabs <- NULL
+  }
   fp_par(
     text.align = text.align,
     padding = padding,
@@ -841,6 +879,8 @@ fp_par_lite <- function(
     shading.color = shading.color,
     keep_with_next = keep_with_next,
     tabs = tabs,
+    first_line = first_line,
+    hanging = hanging,
     word_style = word_style
   )
 }
@@ -874,7 +914,6 @@ to_wml.fp_par <- function(x, add_ns = FALSE, ...) {
 #' @rdname fp_par
 #' @export
 print.fp_par <- function(x, ...) {
-
   out <- data.frame(
     text.align = as.character(x$text.align),
     padding.top = as.character(x$padding.top),
@@ -886,10 +925,16 @@ print.fp_par <- function(x, ...) {
   out <- as.data.frame(t(out))
   names(out) <- "values"
   print(out)
-  if (!is.null(x$border.top) && !isFALSE(x$border.top) &&
-      !is.null(x$border.bottom) && !isFALSE(x$border.bottom) &&
-      !is.null(x$border.left) && !isFALSE(x$border.left) &&
-      !is.null(x$border.right) && !isFALSE(x$border.right)) {
+  if (
+    !is.null(x$border.top) &&
+      !isFALSE(x$border.top) &&
+      !is.null(x$border.bottom) &&
+      !isFALSE(x$border.bottom) &&
+      !is.null(x$border.left) &&
+      !isFALSE(x$border.left) &&
+      !is.null(x$border.right) &&
+      !isFALSE(x$border.right)
+  ) {
     cat("borders:\n")
     borders <- rbind(
       as.data.frame(unclass(x$border.top)),
@@ -902,8 +947,6 @@ print.fp_par <- function(x, ...) {
   } else {
     cat("no borders!\n")
   }
-
-
 }
 
 
@@ -927,6 +970,8 @@ update.fp_par <- function(
   border.right,
   shading.color,
   keep_with_next,
+  first_line,
+  hanging,
   word_style,
   ...
 ) {
@@ -998,6 +1043,12 @@ update.fp_par <- function(
   }
   if (!missing(keep_with_next)) {
     object <- check_set_bool(object, keep_with_next)
+  }
+  if (!missing(first_line)) {
+    object$first_line <- validate_indent(first_line, "first_line")
+  }
+  if (!missing(hanging)) {
+    object$hanging <- validate_indent(hanging, "hanging")
   }
 
   object

@@ -36,6 +36,8 @@ Detailed information about the placeholders on the slide layouts (label, positio
 See \emph{Value} section below for more info.
 }
 \examples{
+library(officer)
+
 x <- read_pptx()
 layout_properties(x = x, layout = "Title Slide", master = "Office Theme")
 layout_properties(x = x, master = "Office Theme")
@@ -43,12 +45,14 @@ layout_properties(x = x, layout = "Two Content")
 layout_properties(x = x)
 }
 \seealso{
-Other ppt_info: 
-\code{\link{color_scheme}()},
-\code{\link{layout_summary}()},
-\code{\link{length.rpptx}()},
-\code{\link{plot_layout_properties}()},
-\code{\link{slide_size}()},
-\code{\link{slide_summary}()}
+Other functions for reading presentation information:
+\code{\link[=annotate_base]{annotate_base()}},
+\code{\link[=color_scheme]{color_scheme()}},
+\code{\link[=doc_properties]{doc_properties()}},
+\code{\link[=layout_summary]{layout_summary()}},
+\code{\link[=length.rpptx]{length.rpptx()}},
+\code{\link[=plot_layout_properties]{plot_layout_properties()}},
+\code{\link[=slide_size]{slide_size()}},
+\code{\link[=slide_summary]{slide_summary()}}
 }
-\concept{ppt_info}
+\concept{functions for reading presentation information}

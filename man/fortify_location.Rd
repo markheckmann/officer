@@ -21,27 +21,25 @@ and top positions and other informations necessary to add a
 content on a slide.
 }
 \examples{
+library(officer)
+
 doc <- read_pptx()
-doc <- add_slide(doc,
-  layout = "Title and Content",
-  master = "Office Theme"
-)
+doc <- add_slide(doc, layout = "Title and Content", master = "Office Theme")
 fortify_location(ph_location_fullsize(), doc)
 }
 \seealso{
 \code{\link[=ph_location]{ph_location()}}, \code{\link[=ph_with]{ph_with()}}
 
-Other functions for officer extensions: 
-\code{\link{docx_reference_img}()},
-\code{\link{get_reference_value}()},
-\code{\link{opts_current_table}()},
-\code{\link{shape_properties_tags}()},
-\code{\link{str_encode_to_rtf}()},
-\code{\link{to_html}()},
-\code{\link{to_pml}()},
-\code{\link{to_rtf}()},
-\code{\link{to_wml}()},
-\code{\link{wml_link_images}()}
+Other functions for officer extensions:
+\code{\link[=get_reference_value]{get_reference_value()}},
+\code{\link[=opts_current_table]{opts_current_table()}},
+\code{\link[=shape_properties_tags]{shape_properties_tags()}},
+\code{\link[=str_encode_to_rtf]{str_encode_to_rtf()}},
+\code{\link[=to_html]{to_html()}},
+\code{\link[=to_pml]{to_pml()}},
+\code{\link[=to_rtf]{to_rtf()}},
+\code{\link[=to_wml]{to_wml()}},
+\code{\link[=wml_link_images]{wml_link_images()}}
 }
 \concept{functions for officer extensions}
 \keyword{internal}

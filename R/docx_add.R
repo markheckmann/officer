@@ -24,22 +24,8 @@ body_add_break <- function(x, pos = "after") {
 #' Defaults to "in"ches.
 #' @param unit One of the following units in which the width and height
 #' arguments are expressed: "in", "cm" or "mm".
-#' @examples
-#' doc <- read_docx()
-#'
-#' img.file <- file.path(R.home("doc"), "html", "logo.jpg")
-#' if (file.exists(img.file)) {
-#'   doc <- body_add_img(x = doc, src = img.file, height = 1.06, width = 1.39)
-#'
-#'   # Set the unit in which the width and height arguments are expressed
-#'   doc <- body_add_img(
-#'     x = doc, src = img.file,
-#'     height = 2.69, width = 3.53,
-#'     unit = "cm"
-#'   )
-#' }
-#'
-#' print(doc, target = tempfile(fileext = ".docx"))
+#' @param alt alternative text for the image
+#' @example inst/examples/example_body_add_img.R
 #' @family functions for adding content
 body_add_img <- function(
   x,
@@ -48,7 +34,8 @@ body_add_img <- function(
   width,
   height,
   pos = "after",
-  unit = "in"
+  unit = "in",
+  alt = ""
 ) {
   if (is.null(style)) {
     style <- x$default_styles$paragraph
@@ -56,7 +43,7 @@ body_add_img <- function(
 
   unit <- check_unit(unit, c("in", "cm", "mm"))
 
-  file_type <- gsub("(.*)(\\.[a-zA-Z0-0]+)$", "\\2", src)
+  file_type <- gsub("(.*)(\\.[a-zA-Z0-9]+)$", "\\2", src)
 
   if (file_type %in% ".svg") {
     if (!requireNamespace("rsvg")) {
@@ -74,7 +61,13 @@ body_add_img <- function(
 
   style_id <- get_style_id(data = x$styles, style = style, type = "paragraph")
 
-  ext_img <- external_img(new_src, width = width, height = height, unit = unit)
+  ext_img <- external_img(
+    new_src,
+    width = width,
+    height = height,
+    unit = unit,
+    alt = alt
+  )
   xml_elt <- runs_to_p_wml(ext_img, add_ns = TRUE, style_id = style_id)
 
   body_add_xml(x = x, str = xml_elt, pos = pos)
@@ -233,7 +226,10 @@ body_import_docx <- function(
   body_chr <- head(body_chr, -1)
   body_chr <- tail(body_chr, -1)
 
-  z <- body_append_start_context(x, additional_ns = ns_from[setdiff(names(ns_from), names(ns_to))])
+  z <- body_append_start_context(
+    x,
+    additional_ns = ns_from[setdiff(names(ns_from), names(ns_to))]
+  )
   cat(body_chr, sep = "\n", file = z$file_con, append = TRUE)
   x <- body_append_stop_context(z)
   x
@@ -250,6 +246,8 @@ body_import_docx <- function(
 #' @param unit One of the following units in which the width and height
 #' arguments are expressed: "in", "cm" or "mm".
 #' @param res resolution of the png image in ppi
+#' @param alt_text Alt-text for screen-readers. Defaults to `""`. If `""` or `NULL`
+#'    an alt text added with `ggplot2::labs(alt = ...)` will be used if any.
 #' @param scale Multiplicative scaling factor, same as in ggsave
 #' @param pos where to add the new element relative to the cursor,
 #' one of "after", "before", "on".
@@ -280,6 +278,7 @@ body_add_gg <- function(
   height = 5,
   res = 300,
   style = "Normal",
+  alt_text = "",
   scale = 1,
   pos = "after",
   unit = "in",
@@ -314,6 +313,12 @@ body_add_gg <- function(
   print(value)
   dev.off()
   on.exit(unlink(file))
+
+  if (is.null(alt_text) || alt_text == "") {
+    alt_text <- ggplot2::get_alt_text(value)
+    if (is.null(alt_text)) alt_text <- ""
+  }
+
   body_add_img(
     x,
     src = file,
@@ -321,7 +326,8 @@ body_add_gg <- function(
     width = width,
     height = height,
     pos = pos,
-    unit = unit
+    unit = unit,
+    alt = alt_text
   )
 }
 
@@ -363,6 +369,44 @@ body_add_blocks <- function(x, blocks, pos = "after") {
         str = to_wml(blocks[[i]], add_ns = TRUE),
         pos = pos_vector[i]
       )
+    }
+  }
+
+  x
+}
+
+
+#' @export
+#' @title Add a list of items into a 'Word' document
+#' @description Add a bullet or numbered list produced by
+#' [block_list_items()] into an rdocx object.
+#' @inheritParams body_add_break
+#' @param items a [block_list_items()] object.
+#' @examples
+#' library(officer)
+#'
+#' items <- block_list_items(
+#'   list_item(fpar(ftext("Item 1", fp_text(color = "red"))), level = 1),
+#'   list_item(fpar("Sub-item"), level = 2),
+#'   list_item(fpar("Item 2"), level = 1),
+#'   list_type = "bullet"
+#' )
+#'
+#' doc <- read_docx()
+#' doc <- body_add_list(doc, items = items)
+#' print(doc, target = tempfile(fileext = ".docx"))
+#' @family functions for adding content
+body_add_list <- function(x, items, pos = "after") {
+  stopifnot(inherits(items, "block_list_items"))
+
+  wml_items <- to_wml(items, add_ns = TRUE)
+  pars <- strsplit(wml_items, "(?<=</w:p>)", perl = TRUE)[[1L]]
+
+  if (length(pars) > 0) {
+    pos_vector <- rep("after", length(pars))
+    pos_vector[1] <- pos
+    for (i in seq_along(pars)) {
+      x <- body_add_xml(x, str = pars[i], pos = pos_vector[i])
     }
   }
 
@@ -916,7 +960,7 @@ body_comment <- function(
 #' @example inst/examples/example_body_add_1.R
 #' @section Illustrations:
 #'
-#' \if{html}{\figure{body_add_doc_1.png}{options: width=70\%}}
+#' \if{html}{\figure{body_add_doc_1.png}{options: style="width:70\%;"}}
 #' @keywords internal
 body_add <- function(x, value, ...) {
   UseMethod("body_add", value)
@@ -1087,6 +1131,29 @@ body_add.block_list <- function(x, value, ...) {
 }
 
 #' @export
+#' @describeIn body_add add a [block_list_items] object (bullet or numbered list).
+body_add.block_list_items <- function(x, value, ...) {
+  x <- cursor_end(x)
+  cursor_elt <- docx_current_block_xml(x)
+  wml_str <- to_wml(value, add_ns = TRUE)
+  # split into individual paragraphs
+  pars <- strsplit(wml_str, "(?<=</w:p>)", perl = TRUE)[[1L]]
+  for (i in rev(seq_along(pars))) {
+    xml_elt <- as_xml_document(pars[i])
+    if (is.null(cursor_elt)) {
+      xml_add_child(
+        xml_find_first(x$doc_obj$get(), "/w:document/w:body"),
+        xml_elt,
+        .where = 0
+      )
+    } else {
+      xml_add_sibling(cursor_elt, xml_elt, .where = "after")
+    }
+  }
+  cursor_end(x)
+}
+
+#' @export
 #' @describeIn body_add add a table of content (a [block_toc] object).
 body_add.block_toc <- function(x, value, ...) {
   xml_elt <- to_wml(value, add_ns = TRUE, base_document = x)
@@ -1101,7 +1168,7 @@ body_add.external_img <- function(x, value, style = "Normal", ...) {
     style <- x$default_styles$paragraph
   }
 
-  file_type <- gsub("(.*)(\\.[a-zA-Z0-0]+)$", "\\2", value)
+  file_type <- gsub("(.*)(\\.[a-zA-Z0-9]+)$", "\\2", value)
 
   if (file_type %in% ".svg") {
     if (!requireNamespace("rsvg")) {

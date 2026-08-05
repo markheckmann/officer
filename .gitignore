@@ -4,5 +4,6 @@
 .Ruserdata
 revdep
 todo.*
-dev_local*
+dev_local
 **/.DS_Store
+.positai

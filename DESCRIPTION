@@ -1,7 +1,7 @@
 Type: Package
 Package: officer
 Title: Manipulation of Microsoft Word and PowerPoint Documents
-Version: 0.7.1.006
+Version: 0.7.7.004
 Authors@R: c(
     person("David", "Gohel", , "david.gohel@ardata.fr", role = c("aut", "cre")),
     person("Stefan", "Moog", , "moogs@gmx.de", role = "aut"),
@@ -27,6 +27,8 @@ Authors@R: c(
     person("Greg", "Leleu", , "gregoire.leleu@gmail.com", role = "ctb",
            comment = "fields functionality in ppt"),
     person("Majid", "Eismann", role = "ctb"),
+    person("Wahiduzzaman", "Khan", role = "ctb",
+           comment = "vectorization of remove_slide"),
     person("Hongyuan", "Jia", , "hongyuanjia@cqust.edu.cn", role = "ctb",
            comment = c(ORCID = "0000-0002-0075-8183")),
     person("Michael", "Stackhouse", , "mike.stackhouse@atorusresearch.com", role = "ctb")
@@ -44,12 +46,14 @@ URL: https://ardata-fr.github.io/officeverse/,
 BugReports: https://github.com/davidgohel/officer/issues
 Imports:
     cli,
+    dplyr,
     graphics,
     grDevices,
     openssl,
     R6,
     ragg,
     stats,
+    tidyr,
     utils,
     uuid,
     xml2 (>= 1.1.0),
@@ -63,11 +67,11 @@ Suggests:
     magick,
     rmarkdown,
     rsvg,
+    mschart,
     testthat,
     withr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Collate: 
     'core_properties.R'
     'custom_properties.R'
@@ -76,10 +80,13 @@ Collate:
     'docx_add.R'
     'docx_comments.R'
     'docx_cursor.R'
+    'docx_embed_font.R'
     'docx_part.R'
     'docx_replace.R'
     'docx_section.R'
     'docx_settings.R'
+    'docx_styles.R'
+    'docx_utils_funs.R'
     'empty_content.R'
     'formatting_properties.R'
     'fortify_docx.R'
@@ -119,3 +126,4 @@ Collate:
     'utils-xml.R'
     'deprecated.R'
     'zzz.R'
+Config/roxygen2/version: 8.0.0

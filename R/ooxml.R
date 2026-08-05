@@ -45,11 +45,16 @@ a_xfrm_str <- function(left = 0, top = 0, width = 3, height = 3, rot = 0) {
     start_tag <- sprintf("<a:xfrm rot=\"%.0f\">", -rot * 60000)
   }
 
-  xfrm_str <- paste0(start_tag, "<a:off x=\"%.0f\" y=\"%.0f\"/><a:ext cx=\"%.0f\" cy=\"%.0f\"/></a:xfrm>")
+  xfrm_str <- paste0(
+    start_tag,
+    "<a:off x=\"%.0f\" y=\"%.0f\"/><a:ext cx=\"%.0f\" cy=\"%.0f\"/></a:xfrm>"
+  )
   sprintf(
     xfrm_str,
-    left * 914400, top * 914400,
-    width * 914400, height * 914400
+    left * 914400,
+    top * 914400,
+    width * 914400,
+    height * 914400
   )
 }
 
@@ -60,9 +65,12 @@ p_xfrm_str <- function(left = 0, top = 0, width = 3, height = 3, rot = 0) {
 
   xfrm_str <- "<p:xfrm rot=\"%.0f\"><a:off x=\"%.0f\" y=\"%.0f\"/><a:ext cx=\"%.0f\" cy=\"%.0f\"/></p:xfrm>"
   sprintf(
-    xfrm_str, -rot * 60000,
-    left * 914400, top * 914400,
-    width * 914400, height * 914400
+    xfrm_str,
+    -rot * 60000,
+    left * 914400,
+    top * 914400,
+    width * 914400,
+    height * 914400
   )
 }
 
@@ -72,12 +80,15 @@ p_xfrm_str <- function(left = 0, top = 0, width = 3, height = 3, rot = 0) {
 css_color <- function(color) {
   color <- as.vector(col2rgb(color, alpha = TRUE)) / c(1, 1, 1, 255)
 
-  if (!(color[4] > 0)) {
+  if (color[4] <= 0) {
     "transparent"
   } else {
     sprintf(
       "rgba(%.0f,%.0f,%.0f,%.2f)",
-      color[1], color[2], color[3], color[4]
+      color[1],
+      color[2],
+      color[3],
+      color[4]
     )
   }
 }
@@ -85,7 +96,9 @@ hex_color <- function(color) {
   color <- as.vector(col2rgb(color, alpha = TRUE)) / c(1, 1, 1, 255)
   sprintf(
     "%02X%02X%02X",
-    color[1], color[2], color[3]
+    color[1],
+    color[2],
+    color[3]
   )
 }
 colalpha <- function(x) {
@@ -97,9 +110,29 @@ colalpha <- function(x) {
 }
 
 is_transparent <- function(color) {
-  !(colalpha(color) > 0)
+  colalpha(color) <= 0
 }
 
+#' @title Solid fill DrawingML fragment
+#' @description Build an `<a:solidFill>` block with an sRGB color and an
+#' alpha channel. Used inside DrawingML shape properties wrappers such
+#' as `<a:spPr>`, `<a:ln>`, `<a:rPr>`, and chartEx-specific wrappers
+#' such as `<cx:spPr>`.
+#'
+#' This is a low-level helper intended for packages that emit OOXML
+#' fragments (e.g. `mschart`, `rvg`). End users typically rely on
+#' higher-level objects ([fp_text()], [fp_border()], [sp_line()]) that
+#' embed the `<a:solidFill>` block themselves.
+#' @param color a color value: a name (`"red"`), a hex string with or
+#' without leading `#` (`"#FF0000"` or `"FF0000"`), or `"transparent"`.
+#' Anything accepted by [grDevices::col2rgb()] works; the alpha channel
+#' is honored.
+#' @return a character string with the OOXML fragment, namespaced `a:`.
+#' @examples
+#' solid_fill("red")
+#' solid_fill("#3366CC")
+#' @export
+#' @keywords internal
 solid_fill <- function(color) {
   sprintf(
     paste0(
@@ -138,7 +171,7 @@ ln_pml <- function(x) {
   ln_str <- ""
   if (!is.null(x)) {
     color_ <- ""
-    if (is_transparent(x$color) || x$lwd < .001) {
+    if (is_transparent(x$color) || x$lwd < 0.001) {
       color_ <- "<a:noFill/>"
     } else {
       color_ <- solid_fill(x$color)
@@ -159,7 +192,9 @@ ln_pml <- function(x) {
         tail_,
         "</a:ln>"
       ),
-      12700 * x$lwd, x$lineend, x$linecmpd
+      12700 * x$lwd,
+      x$lineend,
+      x$linecmpd
     )
   }
   ln_str
@@ -169,7 +204,13 @@ lineend_pml <- function(x, side) {
   lineend_str <- ""
   if (!is.null(x)) {
     tagname <- paste0("a:", side, "End")
-    lineend_str <- sprintf("<%s type=\"%s\" w=\"%s\" len=\"%s\"/>", tagname, x$type, x$width, x$length)
+    lineend_str <- sprintf(
+      "<%s type=\"%s\" w=\"%s\" len=\"%s\"/>",
+      tagname,
+      x$type,
+      x$width,
+      x$length
+    )
   }
   lineend_str
 }
@@ -197,7 +238,7 @@ border_pml <- function(x, side) {
 
   width_ <- sprintf("w=\"%.0f\"", x$width * 12700)
 
-  if (is_transparent(x$color) || x$width < .001) {
+  if (is_transparent(x$color) || x$width < 0.001) {
     color_ <- "<a:noFill/>"
   } else {
     color_ <- solid_fill(x$color)
@@ -215,11 +256,18 @@ border_pml <- function(x, side) {
   style_ <- sprintf("<a:prstDash val=\"%s\"/>", x$style)
 
   paste0(
-    "<", tagname,
-    " ", "algn=\"ctr\" cmpd=\"sng\" cap=\"flat\"",
-    " ", width_,
-    ">", color_, style_,
-    "</", tagname, ">"
+    "<",
+    tagname,
+    " ",
+    "algn=\"ctr\" cmpd=\"sng\" cap=\"flat\"",
+    " ",
+    width_,
+    ">",
+    color_,
+    style_,
+    "</",
+    tagname,
+    ">"
   )
 }
 
@@ -241,17 +289,22 @@ border_wml <- function(x, side) {
   color_ <- sprintf("w:color=\"%s\"", hex_color(x$color))
 
   paste0(
-    "<", tagname,
-    " ", style_,
-    " ", width_,
-    " ", "w:space=\"0\"",
-    " ", color_,
+    "<",
+    tagname,
+    " ",
+    style_,
+    " ",
+    width_,
+    " ",
+    "w:space=\"0\"",
+    " ",
+    color_,
     "/>"
   )
 }
 border_css <- function(x, side) {
   color_ <- css_color(x$color)
-  if (!(x$width > 0)) {
+  if (x$width <= 0) {
     color_ <- "transparent"
   }
 
@@ -261,11 +314,20 @@ border_css <- function(x, side) {
   x$style[x$style %in% "threeDEngrave"] <- "groove"
   x$style[x$style %in% "nil"] <- "none"
 
-  if (!x$style %in% c(
-    "dotted", "dashed", "solid",
-    "double", "inset", "outset",
-    "ridge", "groove", "none"
-  )) {
+  if (
+    !x$style %in%
+      c(
+        "dotted",
+        "dashed",
+        "solid",
+        "double",
+        "inset",
+        "outset",
+        "ridge",
+        "groove",
+        "none"
+      )
+  ) {
     x$style <- "solid"
   }
   paste0("border-", side, ": ", width_, " ", x$style, " ", color_, ";")
@@ -273,7 +335,6 @@ border_css <- function(x, side) {
 
 # ppr ----
 ppr_pml <- function(x) {
-
   align <- ""
   if (!is.na(x$text.align)) {
     align <- " algn=\"r\""
@@ -288,26 +349,53 @@ ppr_pml <- function(x) {
 
   leftright_padding <- ""
   if (!is.na(x$padding.left) && !is.na(x$padding.right)) {
-    leftright_padding <- sprintf(" marL=\"%.0f\" marR=\"%.0f\"", x$padding.left * 12700, x$padding.right * 12700)
+    hang <- x$hanging %||% NA_real_
+    first <- x$first_line %||% NA_real_
+    indent_attr <- ""
+    if (!is.na(hang) && hang > 0) {
+      indent_attr <- sprintf(" indent=\"%.0f\"", -hang * 12700)
+    } else if (!is.na(first) && first > 0) {
+      indent_attr <- sprintf(" indent=\"%.0f\"", first * 12700)
+    }
+    leftright_padding <- sprintf(
+      " marL=\"%.0f\" marR=\"%.0f\"%s",
+      x$padding.left * 12700,
+      x$padding.right * 12700,
+      indent_attr
+    )
   }
 
   top_padding <- ""
   if (!is.na(x$padding.top)) {
-    top_padding <- sprintf("<a:spcBef><a:spcPts val=\"%.0f\" /></a:spcBef>", x$padding.top * 100)
+    top_padding <- sprintf(
+      "<a:spcBef><a:spcPts val=\"%.0f\" /></a:spcBef>",
+      x$padding.top * 100
+    )
   }
   bottom_padding <- ""
   if (!is.na(x$padding.bottom)) {
-    bottom_padding <- sprintf("<a:spcAft><a:spcPts val=\"%.0f\" /></a:spcAft>", x$padding.bottom * 100)
+    bottom_padding <- sprintf(
+      "<a:spcAft><a:spcPts val=\"%.0f\" /></a:spcAft>",
+      x$padding.bottom * 100
+    )
   }
   line_spacing <- ""
   if (!is.na(x$line_spacing)) {
-    line_spacing <- sprintf("<a:lnSpc><a:spcPct val=\"%.0f\"/></a:lnSpc>", x$line_spacing * 100000)
+    line_spacing <- sprintf(
+      "<a:lnSpc><a:spcPct val=\"%.0f\"/></a:lnSpc>",
+      x$line_spacing * 100000
+    )
   }
 
   paste0(
-    "<a:pPr", align, leftright_padding, ">",
+    "<a:pPr",
+    align,
+    leftright_padding,
+    ">",
     line_spacing,
-    top_padding, bottom_padding, "<a:buNone/>",
+    top_padding,
+    bottom_padding,
+    "<a:buNone/>",
     "</a:pPr>"
   )
 }
@@ -323,15 +411,37 @@ ppr_css <- function(x) {
 
   paddings <- sprintf(
     "padding-top:%.0fpt;padding-bottom:%.0fpt;padding-left:%.0fpt;padding-right:%.0fpt;",
-    x$padding.top, x$padding.bottom, x$padding.left, x$padding.right
+    x$padding.top,
+    x$padding.bottom,
+    x$padding.left,
+    x$padding.right
   )
-  ls <- formatC(x$line_spacing, format = "f", digits = 2, decimal.mark = ".", drop0trailing = TRUE)
+  hang <- x$hanging %||% NA_real_
+  first <- x$first_line %||% NA_real_
+  text_indent <- ""
+  if (!is.na(hang) && hang > 0) {
+    text_indent <- sprintf("text-indent:-%.0fpt;", hang)
+  } else if (!is.na(first) && first > 0) {
+    text_indent <- sprintf("text-indent:%.0fpt;", first)
+  }
+  ls <- formatC(
+    x$line_spacing,
+    format = "f",
+    digits = 2,
+    decimal.mark = ".",
+    drop0trailing = TRUE
+  )
   line_spacing <- sprintf("line-height: %s;", ls)
 
   shading.color <- sprintf("background-color:%s;", css_color(x$shading.color))
 
   paste0(
-    "margin:0pt;", text.align, borders, paddings, line_spacing,
+    "margin:0pt;",
+    text.align,
+    borders,
+    paddings,
+    text_indent,
+    line_spacing,
     shading.color
   )
 }
@@ -360,32 +470,54 @@ ppr_wml <- function(x) {
   }
 
   borders_ <- ""
-  if (!is.null(x$border.top) && !isFALSE(x$border.top) &&
-      !is.null(x$border.bottom) && !isFALSE(x$border.bottom) &&
-      !is.null(x$border.left) && !isFALSE(x$border.left) &&
-      !is.null(x$border.right) && !isFALSE(x$border.right)) {
+  if (
+    !is.null(x$border.top) &&
+      !isFALSE(x$border.top) &&
+      !is.null(x$border.bottom) &&
+      !isFALSE(x$border.bottom) &&
+      !is.null(x$border.left) &&
+      !isFALSE(x$border.left) &&
+      !is.null(x$border.right) &&
+      !isFALSE(x$border.right)
+  ) {
     borders_ <- paste0(
       "<w:pBdr>",
       border_wml(x$border.bottom, "bottom"),
       border_wml(x$border.top, "top"),
       border_wml(x$border.left, "left"),
-      border_wml(x$border.right, "right"), "</w:pBdr>"
+      border_wml(x$border.right, "right"),
+      "</w:pBdr>"
     )
   }
 
   leftright_padding <- ""
   if (!is.na(x$padding.left) && !is.na(x$padding.right)) {
+    hang <- x$hanging %||% NA_real_
+    first <- x$first_line %||% NA_real_
+    if (!is.na(hang) && hang > 0) {
+      first_attr <- sprintf("w:hanging=\"%.0f\"", hang * 20)
+    } else if (!is.na(first) && first > 0) {
+      first_attr <- sprintf("w:firstLine=\"%.0f\"", first * 20)
+    } else {
+      first_attr <- "w:firstLine=\"0\" w:firstLineChars=\"0\""
+    }
     leftright_padding <- sprintf(
-      "<w:ind w:left=\"%.0f\" w:right=\"%.0f\" w:firstLine=\"0\" w:firstLineChars=\"0\"/>",
-      x$padding.left * 20, x$padding.right * 20
+      "<w:ind w:left=\"%.0f\" w:right=\"%.0f\" %s/>",
+      x$padding.left * 20,
+      x$padding.right * 20,
+      first_attr
     )
   }
 
   topbot_spacing <- ""
-  if (!is.na(x$padding.bottom) && !is.na(x$padding.top) && !is.na(x$line_spacing)) {
+  if (
+    !is.na(x$padding.bottom) && !is.na(x$padding.top) && !is.na(x$line_spacing)
+  ) {
     topbot_spacing <- sprintf(
       "<w:spacing w:after=\"%.0f\" w:before=\"%.0f\" w:line=\"%.0f\"/>",
-      x$padding.bottom * 20, x$padding.top * 20, x$line_spacing * 240
+      x$padding.bottom * 20,
+      x$padding.top * 20,
+      x$line_spacing * 240
     )
   }
 
@@ -484,10 +616,16 @@ rpr_pml <- function(x) {
 
   out <- paste0(
     out,
-    if (!is.na(x$font.family)) sprintf("<a:latin typeface=\"%s\"/>", x$font.family),
+    if (!is.na(x$font.family)) {
+      sprintf("<a:latin typeface=\"%s\"/>", x$font.family)
+    },
     if (!is.na(x$cs.family)) sprintf("<a:cs typeface=\"%s\"/>", x$cs.family),
-    if (!is.na(x$eastasia.family)) sprintf("<a:ea typeface=\"%s\"/>", x$eastasia.family),
-    if (!is.na(x$hansi.family)) sprintf("<a:sym typeface=\"%s\"/>", x$hansi.family)
+    if (!is.na(x$eastasia.family)) {
+      sprintf("<a:ea typeface=\"%s\"/>", x$eastasia.family)
+    },
+    if (!is.na(x$hansi.family)) {
+      sprintf("<a:sym typeface=\"%s\"/>", x$hansi.family)
+    }
   )
 
   out <- paste0(out, "</a:rPr>")
@@ -499,7 +637,9 @@ rpr_wml <- function(x) {
     "<w:rPr><w:rFonts",
     if (!is.na(x$font.family)) paste0(" w:ascii=\"", x$font.family, "\""),
     if (!is.na(x$hansi.family)) paste0(" w:hAnsi=\"", x$hansi.family, "\""),
-    if (!is.na(x$eastasia.family)) paste0(" w:eastAsia=\"", x$eastasia.family, "\""),
+    if (!is.na(x$eastasia.family)) {
+      paste0(" w:eastAsia=\"", x$eastasia.family, "\"")
+    },
     if (!is.na(x$cs.family)) paste0(" w:cs=\"", x$cs.family, "\""),
     "/>"
   )
@@ -545,7 +685,8 @@ rpr_wml <- function(x) {
       out,
       sprintf(
         "<w:sz w:val=\"%.0f\"/><w:szCs w:val=\"%.0f\"/>",
-        x$font.size * 2, x$font.size * 2
+        x$font.size * 2,
+        x$font.size * 2
       )
     )
   }
@@ -564,7 +705,10 @@ rpr_wml <- function(x) {
     if (!is_transparent(x$shading.color)) {
       out <- paste0(
         out,
-        sprintf("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"%s\"/>", hex_color(x$shading.color))
+        sprintf(
+          "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"%s\"/>",
+          hex_color(x$shading.color)
+        )
       )
     }
     if (colalpha(x$color) < 1) {
@@ -590,9 +734,15 @@ rpr_wml <- function(x) {
 rpr_css <- function(x) {
   out <- ""
 
-  if (!is.na(x$font.family)) out <- paste0(out, sprintf("font-family:'%s';", x$font.family))
-  if (!is.na(x$color)) out <- paste0(out, sprintf("color:%s;", css_color(x$color)))
-  if (!is.na(x$font.size)) out <- paste0(out, sprintf("font-size:%0.1fpt;", x$font.size))
+  if (!is.na(x$font.family)) {
+    out <- paste0(out, sprintf("font-family:'%s';", x$font.family))
+  }
+  if (!is.na(x$color)) {
+    out <- paste0(out, sprintf("color:%s;", css_color(x$color)))
+  }
+  if (!is.na(x$font.size)) {
+    out <- paste0(out, sprintf("font-size:%0.1fpt;", x$font.size))
+  }
 
   if (!is.na(x$italic)) {
     if (x$italic) {
@@ -637,7 +787,6 @@ rpr_css <- function(x) {
     out <- paste0(out, "vertical-align: sub;")
   }
 
-
   out
 }
 # tcpr ----
@@ -663,12 +812,17 @@ tcpr_pml <- function(x) {
 
   margins <- sprintf(
     " marB=\"%.0f\" marT=\"%.0f\" marR=\"%.0f\" marL=\"%.0f\"",
-    x$margin.bottom * 12700, x$margin.top * 12700,
-    x$margin.right * 12700, x$margin.left * 12700
+    x$margin.bottom * 12700,
+    x$margin.top * 12700,
+    x$margin.right * 12700,
+    x$margin.left * 12700
   )
 
   background.color <- paste0(
-    sprintf("<a:solidFill><a:srgbClr val=\"%s\">", hex_color(x$background.color)),
+    sprintf(
+      "<a:solidFill><a:srgbClr val=\"%s\">",
+      hex_color(x$background.color)
+    ),
     sprintf("<a:alpha val=\"%.0f\"/>", colalpha(x$background.color) * 100000),
     "</a:srgbClr></a:solidFill>"
   )
@@ -680,17 +834,36 @@ tcpr_pml <- function(x) {
 
   pml_attrs <- paste0(text.direction, vertical.align, margins)
   paste0(
-    "<a:tcPr", pml_attrs, ">", bl, br, bt, bb,
-    background.color, "</a:tcPr>"
+    "<a:tcPr",
+    pml_attrs,
+    ">",
+    bl,
+    br,
+    bt,
+    bb,
+    background.color,
+    "</a:tcPr>"
   )
 }
 
 tcpr_wml <- function(x) {
-  background.color <- sprintf("<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"%s\"/>", hex_color(x$background.color))
-  vertical.align <- ifelse(x$vertical.align %in% c("center", "top"), sprintf("<w:vAlign w:val=\"%s\"/>", x$vertical.align), "<w:vAlign w:val=\"bottom\"/>")
+  background.color <- sprintf(
+    "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"%s\"/>",
+    hex_color(x$background.color)
+  )
+  vertical.align <- ifelse(
+    x$vertical.align %in% c("center", "top"),
+    sprintf("<w:vAlign w:val=\"%s\"/>", x$vertical.align),
+    "<w:vAlign w:val=\"bottom\"/>"
+  )
   text.direction <- ifelse(
-    x$text.direction %in% "btlr", "<w:textDirection w:val=\"btLr\"/>",
-    ifelse(x$text.direction %in% "tbrl", "<w:textDirection w:val=\"tbRl\"/>", "")
+    x$text.direction %in% "btlr",
+    "<w:textDirection w:val=\"btLr\"/>",
+    ifelse(
+      x$text.direction %in% "tbrl",
+      "<w:textDirection w:val=\"tbRl\"/>",
+      ""
+    )
   )
 
   bb <- border_wml(x$border.bottom, side = "bottom")
@@ -698,10 +871,22 @@ tcpr_wml <- function(x) {
   bl <- border_wml(x$border.left, side = "left")
   br <- border_wml(x$border.right, side = "right")
 
-  margin.bottom <- sprintf("<w:bottom w:w=\"%.0f\" w:type=\"dxa\"/>", x$margin.bottom * 20)
-  margin.top <- sprintf("<w:top w:w=\"%.0f\" w:type=\"dxa\"/>", x$margin.top * 20)
-  margin.left <- sprintf("<w:left w:w=\"%.0f\" w:type=\"dxa\"/>", x$margin.left * 20)
-  margin.right <- sprintf("<w:right w:w=\"%.0f\" w:type=\"dxa\"/>", x$margin.right * 20)
+  margin.bottom <- sprintf(
+    "<w:bottom w:w=\"%.0f\" w:type=\"dxa\"/>",
+    x$margin.bottom * 20
+  )
+  margin.top <- sprintf(
+    "<w:top w:w=\"%.0f\" w:type=\"dxa\"/>",
+    x$margin.top * 20
+  )
+  margin.left <- sprintf(
+    "<w:left w:w=\"%.0f\" w:type=\"dxa\"/>",
+    x$margin.left * 20
+  )
+  margin.right <- sprintf(
+    "<w:right w:w=\"%.0f\" w:type=\"dxa\"/>",
+    x$margin.right * 20
+  )
 
   rowspan <- ""
   if (x$rowspan > 1) {
@@ -715,31 +900,60 @@ tcpr_wml <- function(x) {
   }
 
   paste0(
-    "<w:tcPr>", rowspan, colspan,
-    "<w:tcBorders>", bb, bt, bl, br, "</w:tcBorders>",
+    "<w:tcPr>",
+    rowspan,
+    colspan,
+    "<w:tcBorders>",
+    bb,
+    bt,
+    bl,
+    br,
+    "</w:tcBorders>",
     background.color,
-    "<w:tcMar>", margin.top, margin.bottom, margin.left, margin.right, "</w:tcMar>",
-    text.direction, vertical.align, "</w:tcPr>"
+    "<w:tcMar>",
+    margin.top,
+    margin.bottom,
+    margin.left,
+    margin.right,
+    "</w:tcMar>",
+    text.direction,
+    vertical.align,
+    "</w:tcPr>"
   )
 }
 
 css_px <- function(x, format = "%.0fpx") {
-  ifelse(is.na(x), "inherit",
-    ifelse(x < 0.001, "0", sprintf(format, x))
-  )
+  ifelse(is.na(x), "inherit", ifelse(x < 0.001, "0", sprintf(format, x)))
 }
 
 tcpr_css <- function(x) {
-  background.color <- ifelse(colalpha(x$background.color) > 0,
-    sprintf("background-clip: padding-box;background-color:%s;", css_color(x$background.color)),
+  background.color <- ifelse(
+    colalpha(x$background.color) > 0,
+    sprintf(
+      "background-clip: padding-box;background-color:%s;",
+      css_color(x$background.color)
+    ),
     "background-color:transparent;"
   )
 
-  width <- ifelse(is.null(x$width) || is.na(x$width), "", sprintf("width:%s;", css_px(x$width * 72)))
-  height <- ifelse(is.null(x$height) || is.na(x$height), "", sprintf("height:%s;", css_px(x$height * 72)))
+  width <- ifelse(
+    is.null(x$width) || is.na(x$width),
+    "",
+    sprintf("width:%s;", css_px(x$width * 72))
+  )
+  height <- ifelse(
+    is.null(x$height) || is.na(x$height),
+    "",
+    sprintf("height:%s;", css_px(x$height * 72))
+  )
   vertical.align <- ifelse(
-    x$vertical.align %in% "center", "vertical-align:middle;",
-    ifelse(x$vertical.align %in% "top", "vertical-align:top;", "vertical-align:bottom;")
+    x$vertical.align %in% "center",
+    "vertical-align:middle;",
+    ifelse(
+      x$vertical.align %in% "top",
+      "vertical-align:top;",
+      "vertical-align:bottom;"
+    )
   )
 
   bb <- border_css(x$border.bottom, side = "bottom")
@@ -747,13 +961,26 @@ tcpr_css <- function(x) {
   bl <- border_css(x$border.left, side = "left")
   br <- border_css(x$border.right, side = "right")
 
-  margin.bottom <- sprintf("margin-bottom:%s;", sprintf("%.0fpt", x$margin.bottom))
+  margin.bottom <- sprintf(
+    "margin-bottom:%s;",
+    sprintf("%.0fpt", x$margin.bottom)
+  )
   margin.top <- sprintf("margin-top:%s;", sprintf("%.0fpt", x$margin.top))
   margin.left <- sprintf("margin-left:%s;", sprintf("%.0fpt", x$margin.left))
   margin.right <- sprintf("margin-right:%s;", sprintf("%.0fpt", x$margin.right))
 
   paste0(
-    width, height, background.color, vertical.align, bb, bt, bl, br,
-    margin.bottom, margin.top, margin.left, margin.right
+    width,
+    height,
+    background.color,
+    vertical.align,
+    bb,
+    bt,
+    bl,
+    br,
+    margin.bottom,
+    margin.top,
+    margin.left,
+    margin.right
   )
 }

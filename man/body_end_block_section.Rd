@@ -17,10 +17,53 @@ define any section with a \link{block_section} object. All other
 \verb{body_end_section_*} are specialized, this one is highly flexible
 but it's up to the user to define the section properties.
 }
+\section{Section model in Word}{
+
+A \code{block_section} added with \code{body_end_block_section()} applies to the
+content that \strong{precedes} the call: it closes the section that holds the
+previous paragraphs / tables and inherits any layout (orientation, columns,
+margins, headers / footers) defined by the \code{block_section}. The function
+name reflects this: it marks the \emph{end} of a section.
+
+Typical pattern: add the content, then close it with the section that
+should layout it.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{doc <- read_docx() |>
+  body_add_par("This paragraph is in landscape orientation.") |>
+  body_end_block_section(block_section(prop_section(
+    page_size = page_size(orient = "landscape")
+  )))
+}\if{html}{\out{</div>}}
+
+The default section of the document (defined by the template or by
+\code{\link[=body_set_default_section]{body_set_default_section()}}) closes any content added after the last
+\code{body_end_block_section()} call.
+
+The RTF output uses the opposite model: \code{rtf_add(block_section(...))}
+applies to the content that \emph{follows} the call. See \code{\link[=rtf_add]{rtf_add()}}.
+}
+
+\section{Section breaks occupy a line}{
+
+Ending a section is materialized in the document by an empty
+paragraph mark holding the section properties; this is how the
+OOXML format represents a section break, there is no other way, and
+Word does the same when a section break is inserted manually. As
+any paragraph mark, it occupies one line whose height depends on
+the default paragraph style. The same applies to
+\code{\link[=run_columnbreak]{run_columnbreak()}} when it has to be placed after a table: a table
+cannot host the break, so it must live in a paragraph that also
+takes one line. If that residual line matters for your layout,
+define a dedicated paragraph style with a very small font size
+(e.g. 1pt) and no spacing in your Word template, and use it for the
+paragraph hosting the break:
+\code{fpar(run_columnbreak(), fp_p = fp_par(word_style = "MyTinyStyle"))}.
+}
+
 \section{Illustrations}{
 
 
-\if{html}{\figure{body_end_block_section_doc_1.png}{options: width=80\%}}
+\if{html}{\figure{body_end_block_section_doc_1.png}{options: style="width:80\%;"}}
 }
 
 \examples{
@@ -46,12 +89,12 @@ doc_1 <- body_add_par(doc_1, value = str1, style = "centered")
 print(doc_1, target = tempfile(fileext = ".docx"))
 }
 \seealso{
-Other functions for Word sections: 
-\code{\link{body_end_section_columns}()},
-\code{\link{body_end_section_columns_landscape}()},
-\code{\link{body_end_section_continuous}()},
-\code{\link{body_end_section_landscape}()},
-\code{\link{body_end_section_portrait}()},
-\code{\link{body_set_default_section}()}
+Other functions for Word sections:
+\code{\link[=body_end_section_columns]{body_end_section_columns()}},
+\code{\link[=body_end_section_columns_landscape]{body_end_section_columns_landscape()}},
+\code{\link[=body_end_section_continuous]{body_end_section_continuous()}},
+\code{\link[=body_end_section_landscape]{body_end_section_landscape()}},
+\code{\link[=body_end_section_portrait]{body_end_section_portrait()}},
+\code{\link[=body_set_default_section]{body_set_default_section()}}
 }
 \concept{functions for Word sections}

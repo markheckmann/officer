@@ -15,18 +15,22 @@ on_slide(x, index)
 Change current slide index of an rpptx object.
 }
 \examples{
+library(officer)
+
 doc <- read_pptx()
 doc <- add_slide(doc, "Title and Content")
 doc <- add_slide(doc, "Title and Content")
 doc <- add_slide(doc, "Title and Content")
 doc <- on_slide(doc, index = 1)
 doc <- ph_with(
-  x = doc, "First title",
+  x = doc,
+  "First title",
   location = ph_location_type(type = "title")
 )
 doc <- on_slide(doc, index = 3)
 doc <- ph_with(
-  x = doc, "Third title",
+  x = doc,
+  "Third title",
   location = ph_location_type(type = "title")
 )
 
@@ -37,9 +41,9 @@ print(doc, target = file)
 \code{\link[=read_pptx]{read_pptx()}}, \code{\link[=ph_with]{ph_with()}}
 
 Other functions to manipulate slides:
-\code{\link{add_slide}()},
-\code{\link{move_slide}()},
-\code{\link{remove_slide}()},
-\code{\link{set_notes}()}
+\code{\link[=add_slide]{add_slide()}},
+\code{\link[=move_slide]{move_slide()}},
+\code{\link[=remove_slide]{remove_slide()}},
+\code{\link[=set_notes]{set_notes()}}
 }
 \concept{slide_manipulation}

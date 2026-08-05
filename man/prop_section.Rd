@@ -70,7 +70,7 @@ demonstrate this best practice.
 \section{Illustrations}{
 
 
-\if{html}{\figure{prop_section_doc_1.png}{options: width=80\%}}
+\if{html}{\figure{prop_section_doc_1.png}{options: style="width:80\%;"}}
 }
 
 \examples{
@@ -267,9 +267,9 @@ print(doc_2, target = output_file_2)
 \seealso{
 \link{block_section}
 
-Other functions for section definition: 
-\code{\link{page_mar}()},
-\code{\link{page_size}()},
-\code{\link{section_columns}()}
+Other functions for section definition:
+\code{\link[=page_mar]{page_mar()}},
+\code{\link[=page_size]{page_size()}},
+\code{\link[=section_columns]{section_columns()}}
 }
 \concept{functions for section definition}

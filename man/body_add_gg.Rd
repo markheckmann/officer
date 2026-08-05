@@ -11,6 +11,7 @@ body_add_gg(
   height = 5,
   res = 300,
   style = "Normal",
+  alt_text = "",
   scale = 1,
   pos = "after",
   unit = "in",
@@ -28,6 +29,9 @@ Defaults to a width of 6 and a height of 5 "in"ches.}
 \item{res}{resolution of the png image in ppi}
 
 \item{style}{paragraph style}
+
+\item{alt_text}{Alt-text for screen-readers. Defaults to \code{""}. If \code{""} or \code{NULL}
+an alt text added with \code{ggplot2::labs(alt = ...)} will be used if any.}
 
 \item{scale}{Multiplicative scaling factor, same as in ggsave}
 
@@ -60,18 +64,19 @@ if (require("ggplot2")) {
 }
 }
 \seealso{
-Other functions for adding content: 
-\code{\link{body_add_blocks}()},
-\code{\link{body_add_break}()},
-\code{\link{body_add_caption}()},
-\code{\link{body_add_docx}()},
-\code{\link{body_add_fpar}()},
-\code{\link{body_add_img}()},
-\code{\link{body_add_par}()},
-\code{\link{body_add_plot}()},
-\code{\link{body_add_table}()},
-\code{\link{body_add_toc}()},
-\code{\link{body_append_start_context}()},
-\code{\link{body_import_docx}()}
+Other functions for adding content:
+\code{\link[=body_add_blocks]{body_add_blocks()}},
+\code{\link[=body_add_break]{body_add_break()}},
+\code{\link[=body_add_caption]{body_add_caption()}},
+\code{\link[=body_add_docx]{body_add_docx()}},
+\code{\link[=body_add_fpar]{body_add_fpar()}},
+\code{\link[=body_add_img]{body_add_img()}},
+\code{\link[=body_add_list]{body_add_list()}},
+\code{\link[=body_add_par]{body_add_par()}},
+\code{\link[=body_add_plot]{body_add_plot()}},
+\code{\link[=body_add_table]{body_add_table()}},
+\code{\link[=body_add_toc]{body_add_toc()}},
+\code{\link[=body_append_start_context]{body_append_start_context()}},
+\code{\link[=body_import_docx]{body_import_docx()}}
 }
 \concept{functions for adding content}

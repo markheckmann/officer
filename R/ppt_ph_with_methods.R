@@ -48,7 +48,7 @@
 #'
 #' @section Illustrations:
 #'
-#' \if{html}{\figure{ph_with_doc_1.png}{options: width=80\%}}
+#' \if{html}{\figure{ph_with_doc_1.png}{options: style="width:80\%;"}}
 ph_with <- function(x, value, location, ..., .dots = NULL) {
   location <- resolve_location(location)
   .ph_with(x, value, location, ..., .dots = .dots)
@@ -69,18 +69,30 @@ ph_with.character <- function(x, value, location, ..., .dots = NULL) {
   location <- update_location_from_dots(location, ..., .dots = .dots)
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
-  pars <- paste0("<a:p><a:r><a:rPr/><a:t>", htmlEscapeCopy(value), "</a:t></a:r></a:p>", collapse = "")
+  pars <- paste0(
+    "<a:p><a:r><a:rPr/><a:t>",
+    htmlEscapeCopy(value),
+    "</a:t></a:r></a:p>",
+    collapse = ""
+  )
   xml_elt <- paste0(
-    psp_ns_yes, new_ph,
+    psp_ns_yes,
+    new_ph,
     "<p:txBody><a:bodyPr/><a:lstStyle/>",
-    pars, "</p:txBody></p:sp>"
+    pars,
+    "</p:txBody></p:sp>"
   )
 
   node <- as_xml_document(xml_elt)
@@ -108,18 +120,30 @@ ph_with.numeric <- function(x, value, location, format_fun = format, ..., .dots 
   location <- update_location_from_dots(location, ..., .dots = .dots, discard_unkown_args = TRUE)
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
-  pars <- paste0("<a:p><a:r><a:rPr/><a:t>", htmlEscapeCopy(value), "</a:t></a:r></a:p>", collapse = "")
+  pars <- paste0(
+    "<a:p><a:r><a:rPr/><a:t>",
+    htmlEscapeCopy(value),
+    "</a:t></a:r></a:p>",
+    collapse = ""
+  )
   xml_elt <- paste0(
-    psp_ns_yes, new_ph,
+    psp_ns_yes,
+    new_ph,
     "<p:txBody><a:bodyPr/><a:lstStyle/>",
-    pars, "</p:txBody></p:sp>"
+    pars,
+    "</p:txBody></p:sp>"
   )
   node <- as_xml_document(xml_elt)
 
@@ -144,18 +168,30 @@ ph_with.factor <- function(x, value, location, ..., .dots) {
   location <- update_location_from_dots(location, ..., .dots = .dots)
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
-  pars <- paste0("<a:p><a:r><a:rPr/><a:t>", htmlEscapeCopy(value), "</a:t></a:r></a:p>", collapse = "")
+  pars <- paste0(
+    "<a:p><a:r><a:rPr/><a:t>",
+    htmlEscapeCopy(value),
+    "</a:t></a:r></a:p>",
+    collapse = ""
+  )
   xml_elt <- paste0(
-    psp_ns_yes, new_ph,
+    psp_ns_yes,
+    new_ph,
     "<p:txBody><a:bodyPr/><a:lstStyle/>",
-    pars, "</p:txBody></p:sp>"
+    pars,
+    "</p:txBody></p:sp>"
   )
   node <- as_xml_document(xml_elt)
 
@@ -172,7 +208,8 @@ ph_with.factor <- function(x, value, location, ..., .dots) {
 #' current slide, values will be be first converted to character.
 ph_with.Date <- function(x, value, location, date_format = NULL, ..., .dots = NULL) {
   opt <- options()$officer.date_format
-  if (!is.null(opt) && is.na(opt)) { # catch NA
+  if (!is.null(opt) && is.na(opt)) {
+    # catch NA
     opt <- NULL
   }
   format <- date_format %||% opt %||% "%Y-%m-%d" # fallback to format.Date() default
@@ -193,7 +230,7 @@ ph_with.block_list <- function(x, value, location, level_list = integer(0), ...,
   location <- fortify_location(location, doc = x)
   location <- update_location_from_dots(location, ..., .dots = .dots)
 
-  pars <- sapply(value, to_pml)
+  pars <- vapply(value, to_pml, character(1))
 
   if (length(level_list) > 0) {
     pars <- gsub("<a:buNone/>", "", pars, fixed = TRUE)
@@ -208,7 +245,9 @@ ph_with.block_list <- function(x, value, location, level_list = integer(0), ...,
     pars <- mapply(
       function(par, lvl) {
         paste0(par[1], lvl, par[2])
-      }, strsplit(pars, split = "<a:pPr(.*)</a:pPr>"), lvl,
+      },
+      strsplit(pars, split = "<a:pPr(.*)</a:pPr>"),
+      lvl,
       SIMPLIFY = FALSE
     )
     pars <- unlist(pars)
@@ -217,17 +256,24 @@ ph_with.block_list <- function(x, value, location, level_list = integer(0), ...,
   pars <- paste0(pars, collapse = "")
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
   xml_elt <- paste0(
-    psp_ns_yes, new_ph,
+    psp_ns_yes,
+    new_ph,
     "<p:txBody><a:bodyPr/><a:lstStyle/>",
-    pars, "</p:txBody></p:sp>"
+    pars,
+    "</p:txBody></p:sp>"
   )
 
   node <- as_xml_document(xml_elt)
@@ -248,22 +294,63 @@ ph_with.unordered_list <- function(x, value, location, ..., .dots = NULL) {
   p <- to_pml(value)
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
   xml_elt <- paste0(
-    psp_ns_yes, new_ph,
-    "<p:txBody><a:bodyPr/><a:lstStyle/>", p, "</p:txBody></p:sp>"
+    psp_ns_yes,
+    new_ph,
+    "<p:txBody><a:bodyPr/><a:lstStyle/>",
+    p,
+    "</p:txBody></p:sp>"
   )
   node <- as_xml_document(xml_elt)
   xml_add_child(xml_find_first(slide$get(), "//p:spTree"), node)
   x
 }
 
+#' @export
+#' @describeIn ph_with add a [block_list_items()] (bullet or numbered list)
+#' to a new shape on the current slide.
+ph_with.block_list_items <- function(x, value, location, ...) {
+  slide <- x$slide$get_slide(x$cursor)
+  location <- fortify_location(location, doc = x)
+
+  p <- to_pml(value)
+
+  new_ph <- shape_properties_tags(
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
+  )
+
+  xml_elt <- paste0(
+    psp_ns_yes,
+    new_ph,
+    "<p:txBody><a:bodyPr/><a:lstStyle/>",
+    p,
+    "</p:txBody></p:sp>"
+  )
+  node <- as_xml_document(xml_elt)
+  xml_add_child(xml_find_first(slide$get(), "//p:spTree"), node)
+  x
+}
 
 #' @export
 #' @param header display header if TRUE
@@ -283,20 +370,31 @@ ph_with.data.frame <- function(x, value, location, header = TRUE,
   style_id <- x$table_styles$def[1]
 
   pt <- prop_table(
-    style = style_id, layout = table_layout(),
+    style = style_id,
+    layout = table_layout(),
     width = table_width(),
     tcf = tcf
   )
 
-  bt <- block_table(x = value, header = header, properties = pt, alignment = alignment)
+  bt <- block_table(
+    x = value,
+    header = header,
+    properties = pt,
+    alignment = alignment
+  )
 
   xml_elt <- to_pml(
     bt,
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
   value <- as_xml_document(xml_elt)
@@ -330,6 +428,7 @@ ph_with.gg <- function(x, value, location, res = 300, alt_text = "", scale = 1, 
 
   # agg_png_safe() filters args unknown to ragg::agg_png passed via dots
   agg_png_safe(filename = file, width = width, height = height, units = "in", res = res, scaling = scale, background = "transparent", ...)
+
   print(value)
   dev.off()
   on.exit(unlink(file))
@@ -361,9 +460,11 @@ ph_with.plot_instr <- function(x, value, location, res = 300, ..., .dots = NULL)
 
   dirname <- tempfile()
   dir.create(dirname)
+
   filename <- paste(dirname, "/plot%03d.png", sep = "")
   # agg_png_safe() filters args unknown to ragg::agg_png passed via dots
   agg_png_safe(filename = filename, width = width, height = height, units = "in", res = res, scaling = 1, background = "transparent", ...)
+
   tryCatch(
     {
       eval(value$code)
@@ -376,7 +477,10 @@ ph_with.plot_instr <- function(x, value, location, res = 300, ..., .dots = NULL)
   on.exit(unlink(dirname, recursive = TRUE, force = TRUE))
 
   if (length(file) > 1) {
-    stop(length(file), " files have been produced. Multiple plot are not supported")
+    stop(
+      length(file),
+      " files have been produced. Multiple plot are not supported"
+    )
   }
 
   ext_img <- external_img(file, width = width, height = height)
@@ -408,13 +512,16 @@ ph_with.external_img <- function(x, value, location, use_loc_size = TRUE, ..., .
   width <- location$width
   height <- location$height
 
-
   xml_str <- to_pml(
     x = value,
-    left = location$left, top = location$top,
-    width = width, height = height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
+    left = location$left,
+    top = location$top,
+    width = width,
+    height = height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
     ln = location$ln
   )
 
@@ -443,21 +550,37 @@ ph_with.empty_content <- function(x, value, location, ..., .dots = NULL) {
   location <- update_location_from_dots(location, ..., .dots = .dots)
 
   new_ph <- shape_properties_tags(
-    left = location$left, top = location$top,
-    width = location$width, height = location$height,
-    label = location$ph_label, ph = location$ph,
-    rot = location$rotation, bg = location$bg,
-    ln = location$ln, geom = location$geom
+    left = location$left,
+    top = location$top,
+    width = location$width,
+    height = location$height,
+    label = location$ph_label,
+    ph = location$ph,
+    rot = location$rotation,
+    bg = location$bg,
+    ln = location$ln,
+    geom = location$geom
   )
 
   if (is.na(location$fld_id)) {
     xml_elt <- paste0(psp_ns_yes, new_ph, "</p:sp>")
   } else {
-    pars <- paste0("<a:p><a:fld id=\"", location$fld_id, "\" type = \"", location$fld_type, "\"><a:rPr/><a:t>", x$cursor, "</a:t></a:fld></a:p>", collapse = "")
+    pars <- paste0(
+      "<a:p><a:fld id=\"",
+      location$fld_id,
+      "\" type = \"",
+      location$fld_type,
+      "\"><a:rPr/><a:t>",
+      x$cursor,
+      "</a:t></a:fld></a:p>",
+      collapse = ""
+    )
     xml_elt <- sprintf(paste0(
-      psp_ns_yes, new_ph,
+      psp_ns_yes,
+      new_ph,
       "<p:txBody><a:bodyPr/><a:lstStyle/>",
-      pars, "</p:txBody></p:sp>"
+      pars,
+      "</p:txBody></p:sp>"
     ))
   }
   node <- as_xml_document(xml_elt)
@@ -465,7 +588,6 @@ ph_with.empty_content <- function(x, value, location, ..., .dots = NULL) {
   xml_add_child(xml_find_first(slide$get(), "//p:spTree"), node)
   x
 }
-
 
 
 xml_to_slide <- function(slide, location, value, package_dir) {
@@ -492,7 +614,6 @@ xml_to_slide <- function(slide, location, value, package_dir) {
     node_sppr <- xml_missing()
   }
 
-
   if (!inherits(node_name, "xml_missing")) {
     xml_attr(node_name, "name") <- location$ph_label
   }
@@ -512,9 +633,11 @@ xml_to_slide <- function(slide, location, value, package_dir) {
     xml_attr(chExt, "cy") <- sprintf("%.0f", location$height * 914400)
 
     # add location$rotation to cNvPr:name
-    if (!is.null(location$rotation) &&
-      is.finite(location$rotation) &&
-      is.numeric(location$rotation)) {
+    if (
+      !is.null(location$rotation) &&
+        is.finite(location$rotation) &&
+        is.numeric(location$rotation)
+    ) {
       xml_attr(node_xfrm, "rot") <- sprintf("%.0f", -location$rotation * 60000)
     }
   }
@@ -579,7 +702,8 @@ phs_with <- function(x, ..., .dots = NULL, .slide_idx = NULL) {
   dots_list <- list(...)
   if (length(dots_list) > 0 && !is_named(dots_list)) {
     cli::cli_abort(
-      c("Missing key in {.arg ...}",
+      c(
+        "Missing key in {.arg ...}",
         "x" = "{.arg ...} requires a key-value syntax, with a ph short-form location as the key",
         "i" = "Example: {.code phs_with(x, title = 'My title', 'body[1]' = 'My body')}"
       )
@@ -587,7 +711,8 @@ phs_with <- function(x, ..., .dots = NULL, .slide_idx = NULL) {
   }
   if (length(.dots) > 0 && !is_named(.dots)) {
     cli::cli_abort(
-      c("Missing names in {.arg .dots}",
+      c(
+        "Missing names in {.arg .dots}",
         "x" = "{.arg .dots} must be a named list, with ph short-form locations as names",
         "i" = "Example: {.code phs_with(x, .dots = list(title = 'My title', 'body[1]' = 'My body'))}"
       )

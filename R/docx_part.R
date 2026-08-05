@@ -176,7 +176,7 @@ numberings_append_xml <- function(file_numbering_from, file_numbering_to) {
     abstractNumFrom <- xml_find_first(
       numbering_from,
       sprintf(
-        "w:abstractNum[contains(@w:abstractNumId, '%s')]",
+        "w:abstractNum[@w:abstractNumId='%s']",
         as.character(id_from)
       )
     )
@@ -187,7 +187,7 @@ numberings_append_xml <- function(file_numbering_from, file_numbering_to) {
     usedAbsNumFrom <- xml_find_all(
       numbering_from,
       sprintf(
-        "w:num/w:abstractNumId[contains(@w:val, '%s')]",
+        "w:num/w:abstractNumId[@w:val='%s']",
         as.character(id_from)
       )
     )
@@ -205,7 +205,7 @@ numberings_append_xml <- function(file_numbering_from, file_numbering_to) {
     id_to <- mapping_from$to[i]
     usedNumFrom <- xml_find_all(
       numbering_from,
-      sprintf("w:num[contains(@w:numId, '%s')]", as.character(id_from))
+      sprintf("w:num[@w:numId='%s']", as.character(id_from))
     )
     xml_attr(usedNumFrom, "w:numId") <- as.character(id_to)
   }
@@ -317,13 +317,18 @@ docx_part <- R6Class(
       ]
 
       # append chunks when specific styles are found -----
-      for(style in names(prepend_chunks_on_styles)) {
-        style_id <- sty_par_info_from$style_id[sty_par_info_from$style_name %in% style]
+      for (style in names(prepend_chunks_on_styles)) {
+        style_id <- sty_par_info_from$style_id[
+          sty_par_info_from$style_name %in% style
+        ]
         # find all paragraphs with this style
-        match_pstyle <- grep(sprintf("w:pStyle w:val=\"%s\"", style_id), doc_str)
+        match_pstyle <- grep(
+          sprintf("w:pStyle w:val=\"%s\"", style_id),
+          doc_str
+        )
         # find all </w:pPr> after each match
         match_end_ppr <- grep("</w:pPr>", doc_str)
-        for(par_i in match_pstyle) {
+        for (par_i in match_pstyle) {
           # find next </w:pPr>
           current_match_end_ppr <- match_end_ppr[match_end_ppr > par_i]
           current_match_end_ppr <- head(current_match_end_ppr, n = 1)

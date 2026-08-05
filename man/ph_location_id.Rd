@@ -39,6 +39,8 @@ This label can then be reused by other functions such as \code{ph_location_label
 It can be set with argument \code{newlabel}.
 }
 \examples{
+library(officer)
+
 doc <- read_pptx()
 doc <- add_slide(doc, "Comparison")
 plot_layout_properties(doc, "Comparison")
@@ -50,18 +52,17 @@ doc <- ph_with(doc, "The Footer", location = ph_location_id(id = 8)) # footer
 
 file <- tempfile(fileext = ".pptx")
 print(doc, file)
-\dontrun{
-file.show(file) # may not work on your system
-}
+
+## file.show(file) # may not work on your system
 }
 \seealso{
-Other functions for placeholder location: 
-\code{\link{ph_location}()},
-\code{\link{ph_location_fullsize}()},
-\code{\link{ph_location_label}()},
-\code{\link{ph_location_left}()},
-\code{\link{ph_location_right}()},
-\code{\link{ph_location_template}()},
-\code{\link{ph_location_type}()}
+Other functions for placeholder location:
+\code{\link[=ph_location]{ph_location()}},
+\code{\link[=ph_location_fullsize]{ph_location_fullsize()}},
+\code{\link[=ph_location_label]{ph_location_label()}},
+\code{\link[=ph_location_left]{ph_location_left()}},
+\code{\link[=ph_location_right]{ph_location_right()}},
+\code{\link[=ph_location_template]{ph_location_template()}},
+\code{\link[=ph_location_type]{ph_location_type()}}
 }
 \concept{functions for placeholder location}

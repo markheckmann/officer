@@ -9,6 +9,7 @@
 \alias{body_add.data.frame}
 \alias{body_add.block_caption}
 \alias{body_add.block_list}
+\alias{body_add.block_list_items}
 \alias{body_add.block_toc}
 \alias{body_add.external_img}
 \alias{body_add.run_pagebreak}
@@ -42,6 +43,8 @@ body_add(x, value, ...)
 \method{body_add}{block_caption}(x, value, ...)
 
 \method{body_add}{block_list}(x, value, ...)
+
+\method{body_add}{block_list_items}(x, value, ...)
 
 \method{body_add}{block_toc}(x, value, ...)
 
@@ -146,6 +149,8 @@ each iteraction over the elements, as a consequence the
 function only append elements at the end of the document
 and does not allow to insert elements at a specific position.
 
+\item \code{body_add(block_list_items)}: add a \link{block_list_items} object (bullet or numbered list).
+
 \item \code{body_add(block_toc)}: add a table of content (a \link{block_toc} object).
 
 \item \code{body_add(external_img)}: add an image (a \link{external_img} object).
@@ -166,7 +171,7 @@ and does not allow to insert elements at a specific position.
 \section{Illustrations}{
 
 
-\if{html}{\figure{body_add_doc_1.png}{options: width=70\%}}
+\if{html}{\figure{body_add_doc_1.png}{options: style="width:70\%;"}}
 }
 
 \examples{
