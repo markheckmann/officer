@@ -20,6 +20,7 @@
 #'
 #' print(doc_1, target = tempfile(fileext = ".docx"))
 #' @family functions for Word sections
+#' @inheritSection body_end_block_section Section breaks occupy a line
 body_end_section_continuous <- function(x) {
   bs <- block_section(prop_section(type = "continuous"))
   str <- to_wml(bs, add_ns = TRUE)
@@ -42,6 +43,7 @@ body_end_section_continuous <- function(x) {
 #'
 #' print(doc_1, target = tempfile(fileext = ".docx"))
 #' @family functions for Word sections
+#' @inheritSection body_end_block_section Section breaks occupy a line
 body_end_section_landscape <- function(x, w = 16838 / 1440, h = 11906 / 1440) {
   bs <- block_section(prop_section(
     page_size = page_size(width = w, height = h, orient = "landscape"),
@@ -67,6 +69,7 @@ body_end_section_landscape <- function(x, w = 16838 / 1440, h = 11906 / 1440) {
 #' doc_1 <- body_add_par(doc_1, value = str1, style = "Normal")
 #' print(doc_1, target = tempfile(fileext = ".docx"))
 #' @family functions for Word sections
+#' @inheritSection body_end_block_section Section breaks occupy a line
 body_end_section_portrait <- function(x, w = 16838 / 1440, h = 11906 / 1440) {
   bs <- block_section(prop_section(
     page_size = page_size(width = w, height = h, orient = "portrait"),
@@ -97,6 +100,7 @@ body_end_section_portrait <- function(x, w = 16838 / 1440, h = 11906 / 1440) {
 #' doc_1 <- body_add_par(doc_1, value = str1, style = "Normal")
 #' print(doc_1, target = tempfile(fileext = ".docx"))
 #' @family functions for Word sections
+#' @inheritSection body_end_block_section Section breaks occupy a line
 body_end_section_columns <- function(
   x,
   widths = c(2.5, 2.5),
@@ -134,6 +138,7 @@ body_end_section_columns <- function(
 #' doc_1 <- body_add_par(doc_1, value = str1, style = "Normal")
 #' print(doc_1, target = tempfile(fileext = ".docx"))
 #' @family functions for Word sections
+#' @inheritSection body_end_block_section Section breaks occupy a line
 body_end_section_columns_landscape <- function(
   x,
   widths = c(2.5, 2.5),
@@ -185,6 +190,21 @@ body_end_section_columns_landscape <- function(
 #'
 #' The RTF output uses the opposite model: `rtf_add(block_section(...))`
 #' applies to the content that *follows* the call. See [rtf_add()].
+#'
+#' @section Section breaks occupy a line:
+#' Ending a section is materialized in the document by an empty
+#' paragraph mark holding the section properties; this is how the
+#' OOXML format represents a section break, there is no other way, and
+#' Word does the same when a section break is inserted manually. As
+#' any paragraph mark, it occupies one line whose height depends on
+#' the default paragraph style. The same applies to
+#' [run_columnbreak()] when it has to be placed after a table: a table
+#' cannot host the break, so it must live in a paragraph that also
+#' takes one line. If that residual line matters for your layout,
+#' define a dedicated paragraph style with a very small font size
+#' (e.g. 1pt) and no spacing in your Word template, and use it for the
+#' paragraph hosting the break:
+#' `fpar(run_columnbreak(), fp_p = fp_par(word_style = "MyTinyStyle"))`.
 #'
 #' @param x an rdocx object
 #' @param value a [block_section] object
