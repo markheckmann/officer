@@ -23,7 +23,7 @@ length.rpptx <- function(x) {
 #' my_pres <- add_slide(my_pres,
 #'   layout = "Two Content", master = "Office Theme")
 #' slide_size(my_pres)
-#' @family ppt_info
+#' @family functions for reading presentation information
 slide_size <- function(x) {
   pres <- x$presentation$get()
   dimensions <- xml_attrs(xml_find_first(pres, "p:sldSz"))
@@ -147,7 +147,7 @@ layout_properties <- function(x, layout = NULL, master = NULL) {
 #'   three parameters.
 #' @param legend Add a legend to the plot (default `FALSE`).
 #' @importFrom graphics plot rect text box
-#' @family ppt_info
+#' @family functions for reading presentation information
 #' @example inst/examples/example_plot_layout_properties.R
 #'
 plot_layout_properties <- function(

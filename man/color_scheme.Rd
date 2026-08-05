@@ -28,4 +28,4 @@ Other functions for reading presentation information:
 \code{\link[=slide_size]{slide_size()}},
 \code{\link[=slide_summary]{slide_summary()}}
 }
-\concept{ppt_info}
+\concept{functions for reading presentation information}
