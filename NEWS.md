@@ -6,6 +6,9 @@
 objects); if empty, the alt text defined with `ggplot2::labs(alt = ...)` is
 used. `body_add_img()` gains an `alt` argument, passed to `external_img()`
 (discussion #733).
+- `docx_summary()` gains a `para_id` column containing the unique paragraph
+id, allowing to join its results with those of `docx_comments()`
+(discussion #732).
 
 ## Issues
 
