@@ -32,6 +32,39 @@ test_that("add image in docx", {
   }
 })
 
+test_that("alt text is written to wp:docPr in docx", {
+  x <- read_docx()
+  x <- body_add_img(
+    x,
+    src = file.path(R.home("doc"), "html", "logo.jpg"),
+    width = 1.39, height = 1.06,
+    alt = "R logo"
+  )
+  x <- read_docx(path = print(x, target = tempfile(fileext = ".docx")))
+  node_docpr <- xml_find_first(docx_body_xml(x), "//wp:docPr")
+  expect_equal(xml_attr(node_docpr, "descr"), "R logo")
+})
+
+test_that("body_add_gg picks up ggplot2 alt text", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not(capabilities(what = "png"))
+  gg <- ggplot2::ggplot(iris) +
+    ggplot2::geom_point(ggplot2::aes(Sepal.Length, Petal.Length)) +
+    ggplot2::labs(alt = "a scatter plot")
+  x <- read_docx()
+  x <- body_add_gg(x, value = gg)
+  x <- read_docx(path = print(x, target = tempfile(fileext = ".docx")))
+  node_docpr <- xml_find_first(docx_body_xml(x), "//wp:docPr")
+  expect_equal(xml_attr(node_docpr, "descr"), "a scatter plot")
+
+  # explicit alt_text wins over labs(alt = ...)
+  x <- read_docx()
+  x <- body_add_gg(x, value = gg, alt_text = "explicit alt")
+  x <- read_docx(path = print(x, target = tempfile(fileext = ".docx")))
+  node_docpr <- xml_find_first(docx_body_xml(x), "//wp:docPr")
+  expect_equal(xml_attr(node_docpr, "descr"), "explicit alt")
+})
+
 pic <- file.path(R.home("doc"), "html", "logo.jpg")
 base_dir <- tempfile()
 file1 <- file.path(base_dir, "dir1", "logo1.jpg")

@@ -1,5 +1,12 @@
 # officer 0.7.7
 
+## Features
+
+- `body_add_gg()` gains an `alt_text` argument (as `ph_with()` for ggplot
+objects); if empty, the alt text defined with `ggplot2::labs(alt = ...)` is
+used. `body_add_img()` gains an `alt` argument, passed to `external_img()`
+(discussion #733).
+
 ## Issues
 
 - fix lost images : keep images referenced through VML `<v:imagedata>` (e.g. EMF 
