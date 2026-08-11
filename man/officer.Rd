@@ -26,6 +26,37 @@ The package is also providing several objects that can be printed
 in 'R Markdown' documents for advanced Word or PowerPoint
 reporting as \code{\link[=run_autonum]{run_autonum()}} and \code{\link[=block_caption]{block_caption()}}.
 }
+\section{Get Word content in a data.frame}{
+
+
+While officer allows you to generate Word and PowerPoint documents,
+an important feature is also the ability to read the content of existing
+Word documents. Use \code{\link[=docx_summary]{docx_summary()}} to extract document content as a
+structured data.frame, making it easy to analyze and process Word files
+programmatically.
+}
+
+\section{Copy an officer object}{
+
+
+'officer' objects of class \code{rdocx} or \code{rpptx} use R6 classes with reference
+semantics. \strong{Assignment does NOT create a copy}:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{pptx1 <- read_pptx()
+pptx2 <- pptx1  # pptx2 is a reference to pptx1, not a copy!
+}\if{html}{\out{</div>}}
+
+If you need independent documents (e.g., in loops), read the template
+each time:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{for (i in 1:10) \{
+  doc <- read_docx("template.docx")  # Read fresh each iteration
+  # ... modify doc ...
+  print(doc, target = paste0("output_", i, ".docx"))
+\}
+}\if{html}{\out{</div>}}
+}
+
 \seealso{
 The user documentation: \url{https://ardata-fr.github.io/officeverse/} and
 manuals \url{https://davidgohel.github.io/officer/}
@@ -35,6 +66,7 @@ manuals \url{https://davidgohel.github.io/officer/}
 
 Authors:
 \itemize{
+  \item David Gohel \email{david.gohel@ardata.fr}
   \item Stefan Moog \email{moogs@gmx.de}
   \item Mark Heckmann \email{heckmann.mark@gmail.com} (\href{https://orcid.org/0000-0002-0736-7417}{ORCID})
 }
@@ -52,6 +84,7 @@ Other contributors:
   \item Nikolai Beck \email{beck.nikolai@gmail.com} (set speaker notes for .pptx documents) [contributor]
   \item Greg Leleu \email{gregoire.leleu@gmail.com} (fields functionality in ppt) [contributor]
   \item Majid Eismann [contributor]
+  \item Wahiduzzaman Khan (vectorization of remove_slide) [contributor]
   \item Hongyuan Jia \email{hongyuanjia@cqust.edu.cn} (\href{https://orcid.org/0000-0002-0075-8183}{ORCID}) [contributor]
   \item Michael Stackhouse \email{mike.stackhouse@atorusresearch.com} [contributor]
 }

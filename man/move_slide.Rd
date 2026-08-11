@@ -9,7 +9,8 @@ move_slide(x, index = NULL, to)
 \arguments{
 \item{x}{an rpptx object}
 
-\item{index}{slide index, default to current slide position.}
+\item{index}{slide index or a vector of slide indices to remove,
+default to current slide position.}
 
 \item{to}{new slide index.}
 }
@@ -20,6 +21,8 @@ Move a slide in a pptx presentation.
 cursor is set on the last slide.
 }
 \examples{
+library(officer)
+
 x <- read_pptx()
 x <- add_slide(x, "Title and Content")
 x <- ph_with(x, "Hello world 1", location = ph_location_type())
@@ -31,9 +34,9 @@ x <- move_slide(x, index = 1, to = 2)
 \code{\link[=read_pptx]{read_pptx()}}
 
 Other functions to manipulate slides:
-\code{\link{add_slide}()},
-\code{\link{on_slide}()},
-\code{\link{remove_slide}()},
-\code{\link{set_notes}()}
+\code{\link[=add_slide]{add_slide()}},
+\code{\link[=on_slide]{on_slide()}},
+\code{\link[=remove_slide]{remove_slide()}},
+\code{\link[=set_notes]{set_notes()}}
 }
 \concept{slide_manipulation}

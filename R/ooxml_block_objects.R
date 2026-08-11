@@ -77,7 +77,9 @@ to_wml_block_caption_officer <- function(x, add_ns = FALSE) {
   out
 }
 to_wml_block_caption_pandoc <- function(x, bookdown_id = NULL) {
-  if (is.null(x$label)) return("")
+  if (is.null(x$label)) {
+    return("")
+  }
 
   autonum <- ""
   if (!is.null(x$autonum)) {
@@ -100,9 +102,11 @@ to_wml_block_caption_pandoc <- function(x, bookdown_id = NULL) {
 
 #' @export
 to_wml.block_caption <- function(x, add_ns = FALSE, knitting = FALSE, ...) {
-  if (knitting)
-    to_wml_block_caption_pandoc(x, bookdown_id = list(...)$bookdown_id) else
+  if (knitting) {
+    to_wml_block_caption_pandoc(x, bookdown_id = list(...)$bookdown_id)
+  } else {
     to_wml_block_caption_officer(x, add_ns = add_ns)
+  }
 }
 
 
@@ -514,7 +518,7 @@ table_stylenames <- function(stylenames = list()) {
   }
 
   if (length(stylenames) > 0 && is.list(stylenames)) {
-    .l <- vapply(stylenames, length, FUN.VALUE = 0L)
+    .l <- lengths(stylenames)
     zz <- inverse.rle(
       structure(
         list(
@@ -552,7 +556,9 @@ to_wml.table_stylenames <- function(x, add_ns = FALSE, dat, ...) {
 
 #' @export
 to_wml.table_colwidths <- function(x, add_ns = FALSE, ...) {
-  if (length(x$widths) < 1) return("")
+  if (length(x$widths) < 1) {
+    return("")
+  }
   grid_col_str <- sprintf("<w:gridCol w:w=\"%.0f\"/>", x$widths * 1440)
   grid_col_str <- paste(grid_col_str, collapse = "")
   paste0("<w:tblGrid>", grid_col_str, "</w:tblGrid>")
@@ -615,21 +621,24 @@ to_wml.prop_table <- function(x, add_ns = FALSE, base_document = NULL, ...) {
   tbl_layout <- to_wml(x$layout, add_ns = add_ns)
 
   width <- ""
-  if (!is.null(x$width) && "autofit" %in% x$layout$type)
+  if (!is.null(x$width) && "autofit" %in% x$layout$type) {
     width <- to_wml(x$width, add_ns = add_ns)
+  }
 
   colwidths <- to_wml(x$colsizes, add_ns = add_ns)
   tcf <- to_wml(x$tcf, add_ns = add_ns)
   paste0(
     "<w:tblPr>",
-    if (!is.null(x$word_title))
-      paste0("<w:tblCaption w:val=\"", htmlEscapeCopy(x$word_title), "\"/>"),
-    if (!is.null(x$word_description))
+    if (!is.null(x$word_title)) {
+      paste0("<w:tblCaption w:val=\"", htmlEscapeCopy(x$word_title), "\"/>")
+    },
+    if (!is.null(x$word_description)) {
       paste0(
         "<w:tblDescription w:val=\"",
         htmlEscapeCopy(x$word_description),
         "\"/>"
-      ),
+      )
+    },
     if (!is.na(style)) paste0("<w:tblStyle w:tstlname=\"", style, "\"/>"),
     tbl_layout,
     sprintf("<w:jc w:val=\"%s\"/>", x$align),
@@ -812,12 +821,13 @@ block_table <- function(
   alignment = NULL
 ) {
   stopifnot(is.data.frame(x))
-  if (inherits(x, "tbl_df"))
+  if (inherits(x, "tbl_df")) {
     x <- as.data.frame(
       x,
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
+  }
 
   z <- list(
     x = x,
@@ -866,8 +876,9 @@ to_pml.block_table <- function(
   ph = "<p:ph/>",
   ...
 ) {
-  if (!is.null(bg) && !is.color(bg))
+  if (!is.null(bg) && !is.color(bg)) {
     stop("bg must be a valid color.", call. = FALSE)
+  }
 
   bg_str <- solid_fill_pml(bg)
 
@@ -953,7 +964,12 @@ to_pml.block_table <- function(
 #'   fp_p = fp_par(text.align = "center") )
 #' @family block functions for reporting
 #' @seealso [block_list()], [body_add_fpar()], [ph_with()]
-fpar <- function(..., fp_p = fp_par(word_style = NA_character_), fp_t = fp_text_lite(), values = NULL) {
+fpar <- function(
+  ...,
+  fp_p = fp_par(word_style = NA_character_),
+  fp_t = fp_text_lite(),
+  values = NULL
+) {
   out <- list()
 
   if (is.null(values)) {
@@ -995,7 +1011,7 @@ fortify_fpar <- function(x) {
 #' @export
 as.data.frame.fpar <- function(x, ...) {
   chks <- fortify_fpar(x)
-  chks <- chks[sapply(chks, function(x) inherits(x, "ftext"))]
+  chks <- chks[vapply(chks, function(x) inherits(x, "ftext"), logical(1))]
   chks <- mapply(
     function(x) {
       data.frame(
@@ -1022,12 +1038,13 @@ to_wml.fpar <- function(x, add_ns = FALSE, style_id = NULL, ...) {
   }
   if (is.null(style_id)) {
     par_style <- ppr_wml(x$fp_p)
-  } else
+  } else {
     par_style <- paste0(
       "<w:pPr><w:pStyle w:val=\"",
       style_id,
       "\"/></w:pPr>"
     )
+  }
 
   chks <- fortify_fpar(x)
   z <- lapply(chks, to_wml)
@@ -1145,7 +1162,7 @@ to_wml.block_list <- function(x, add_ns = FALSE, ...) {
 
 #' @export
 to_pml.block_list <- function(x, add_ns = FALSE, ...) {
-  pars <- sapply(x, to_pml)
+  pars <- vapply(x, to_pml, character(1))
   pars <- paste0(pars, collapse = "")
   pars
 }
@@ -1156,12 +1173,193 @@ to_html.block_list <- function(x, add_ns = FALSE, ...) {
   paste0(str, collapse = "")
 }
 
+# list_item / block_list_items ----
+
+#' @export
+#' @title Create a list item
+#' @description Wrap an [fpar()] with a hierarchy level for use
+#' inside [block_list_items()].
+#' @param x an [fpar()] object or a character string
+#' (automatically converted to [fpar()])
+#' @param level hierarchy level, integer starting at 1
+#' @seealso [block_list_items()]
+#' @family block functions for reporting
+list_item <- function(x, level = 1L) {
+  if (is.character(x)) {
+    x <- fpar(x)
+  }
+  if (!inherits(x, "fpar")) {
+    cli::cli_abort("{.arg x} must be an {.cls fpar} or a character string.")
+  }
+  level <- as.integer(level)
+  if (level < 1L) {
+    cli::cli_abort("{.arg level} must be >= 1.")
+  }
+  z <- list(fpar = x, level = level)
+  class(z) <- "list_item"
+  z
+}
+
+#' @export
+#' @title List of items for Word and PowerPoint
+#' @description Create a bullet or numbered list from [list_item()]
+#' elements. Supports rich text via [fpar()] and multi-level nesting.
+#' Works in both Word and PowerPoint documents.
+#' @param ... [list_item()] objects
+#' @param list_type `"bullet"` for an unordered list or `"decimal"`
+#' for a numbered list
+#' @examples
+#' items <- block_list_items(
+#'   list_item(fpar(
+#'     ftext("Item 1", fp_text(color = "red"))
+#'   ), level = 1),
+#'   list_item(fpar("Sub-item"), level = 2),
+#'   list_item(fpar("Item 2"), level = 1),
+#'   list_type = "bullet"
+#' )
+#' items
+#' @seealso [list_item()], [body_add()], [ph_with()]
+#' @family block functions for reporting
+block_list_items <- function(..., list_type = "bullet") {
+  items <- list(...)
+  for (i in seq_along(items)) {
+    if (!inherits(items[[i]], "list_item")) {
+      cli::cli_abort("Element {i} is not a {.cls list_item}.")
+    }
+  }
+  list_type <- match.arg(list_type, c("bullet", "decimal"))
+  z <- list(
+    items = items,
+    list_type = list_type,
+    list_uid = uuid_generate()
+  )
+  class(z) <- c("block_list_items", "block")
+  z
+}
+
+#' @export
+#' @noRd
+print.block_list_items <- function(x, ...) {
+  type_label <- if (x$list_type == "bullet") "Bullet" else "Numbered"
+  cat(sprintf("%s list (%d items):\n", type_label, length(x$items)))
+  for (i in seq_along(x$items)) {
+    item <- x$items[[i]]
+    indent <- paste(rep("  ", item$level), collapse = "")
+    prefix <- if (x$list_type == "bullet") "-" else paste0(i, ".")
+    txt <- vapply(
+      item$fpar$chunks,
+      function(ch) {
+        if (is.character(ch)) {
+          ch
+        } else if (!is.null(ch$value)) {
+          ch$value
+        } else {
+          "..."
+        }
+      },
+      character(1L)
+    )
+    cat(sprintf("%s%s %s\n", indent, prefix, paste(txt, collapse = "")))
+  }
+  invisible(x)
+}
+
+#' @export
+to_wml.block_list_items <- function(x, add_ns = FALSE, ...) {
+  marker <- sprintf("officer-list-%s-%s", x$list_type, x$list_uid)
+  out <- character(length(x$items))
+  for (i in seq_along(x$items)) {
+    item <- x$items[[i]]
+    ilvl <- item$level - 1L
+    num_pr <- sprintf(
+      "<w:numPr><w:ilvl w:val=\"%d\"/><w:numId w:val=\"%s\"/></w:numPr>",
+      ilvl,
+      marker
+    )
+    wml <- to_wml(item$fpar, add_ns = add_ns, style_id = NULL)
+    # remove default w:ind so numbering controls indentation
+    wml <- sub(
+      "<w:ind w:left=\"0\" w:right=\"0\"[^/]*/>",
+      "",
+      wml
+    )
+    # inject numPr into pPr
+    if (grepl("<w:pPr>", wml, fixed = TRUE)) {
+      wml <- sub("<w:pPr>", paste0("<w:pPr>", num_pr), wml, fixed = TRUE)
+    } else if (grepl("<w:pPr/>", wml, fixed = TRUE)) {
+      wml <- sub(
+        "<w:pPr/>",
+        paste0("<w:pPr>", num_pr, "</w:pPr>"),
+        wml,
+        fixed = TRUE
+      )
+    } else {
+      # no pPr at all, add after opening <w:p> tag
+      wml <- sub("(<w:p[^>]*>)", paste0("\\1<w:pPr>", num_pr, "</w:pPr>"), wml)
+    }
+    out[i] <- wml
+  }
+  paste0(out, collapse = "")
+}
+
+#' @export
+to_pml.block_list_items <- function(x, add_ns = FALSE, ...) {
+  out <- character(length(x$items))
+  for (i in seq_along(x$items)) {
+    item <- x$items[[i]]
+    lvl <- item$level - 1L
+    pml <- to_pml(item$fpar, add_ns = add_ns)
+
+    # build bullet/number element
+    if (x$list_type == "bullet") {
+      bu_elem <- "<a:buChar char=\"&#x2022;\"/>"
+    } else {
+      bu_elem <- "<a:buAutoNum type=\"arabicPeriod\"/>"
+    }
+
+    # remove buNone (fpar default) so our bullet/number takes effect
+    pml <- sub("<a:buNone/>", "", pml, fixed = TRUE)
+    # remove marL="0" so indentation works naturally
+    pml <- sub(" marL=\"0\"", "", pml, fixed = TRUE)
+
+    # inject lvl and bullet into pPr
+    lvl_attr <- if (lvl > 0) sprintf(" lvl=\"%d\"", lvl) else ""
+    if (grepl("<a:pPr/>", pml, fixed = TRUE)) {
+      pml <- sub(
+        "<a:pPr/>",
+        sprintf("<a:pPr%s>%s</a:pPr>", lvl_attr, bu_elem),
+        pml,
+        fixed = TRUE
+      )
+    } else if (grepl("<a:pPr", pml, fixed = TRUE)) {
+      # pPr may have attributes like algn="l" marR="0"
+      pml <- sub(
+        "<a:pPr([^>]*)>",
+        sprintf("<a:pPr\\1%s>%s", lvl_attr, bu_elem),
+        pml
+      )
+    } else {
+      pml <- sub(
+        "(<a:p[^>]*>)",
+        sprintf("\\1<a:pPr%s>%s</a:pPr>", lvl_attr, bu_elem),
+        pml
+      )
+    }
+    out[i] <- pml
+  }
+  paste0(out, collapse = "")
+}
+
 # unordered list ----
 #' @export
 #' @title Unordered list
 #' @description unordered list of text for PowerPoint
 #' presentations. Each text is associated with
 #' a hierarchy level.
+#'
+#' Consider using [block_list_items()] instead, which supports
+#' rich text via [fpar()], works in both Word and PowerPoint,
+#' and supports numbered lists.
 #' @param str_list list of strings to be included in the object
 #' @param level_list list of levels for hierarchy structure. Use
 #' 0 for 'no bullet', 1 for level 1, 2 for level 2 and so on.
@@ -1170,17 +1368,20 @@ to_html.block_list <- function(x, add_ns = FALSE, ...) {
 #' inherit from default sizes of the presentation.
 #' @examples
 #' unordered_list(
-#' level_list = c(1, 2, 2, 3, 3, 1),
-#' str_list = c("Level1", "Level2", "Level2", "Level3", "Level3", "Level1"),
-#' style = fp_text(color = "red", font.size = 0) )
+#'   level_list = c(1, 2, 2, 3, 3, 1),
+#'   str_list = c("Level1", "Level2", "Level2", "Level3", "Level3", "Level1"),
+#'   style = fp_text(color = "red", font.size = 0)
+#' )
+#'
 #' unordered_list(
-#' level_list = c(1, 2, 1),
-#' str_list = c("Level1", "Level2", "Level1"),
-#' style = list(
-#'   fp_text(color = "red", font.size = 0),
-#'   fp_text(color = "pink", font.size = 0),
-#'   fp_text(color = "orange", font.size = 0)
-#'   ))
+#'   level_list = c(1, 2, 1),
+#'   str_list = c("Level1", "Level2", "Level1"),
+#'   style = list(
+#'     fp_text(color = "red", font.size = 0),
+#'     fp_text(color = "pink", font.size = 0),
+#'     fp_text(color = "orange", font.size = 0)
+#'   )
+#' )
 #' @seealso [ph_with()]
 #' @family block functions for reporting
 unordered_list <- function(
@@ -1191,13 +1392,14 @@ unordered_list <- function(
   stopifnot(is.character(str_list))
   stopifnot(is.numeric(level_list))
 
-  if (length(str_list) != length(level_list) & length(str_list) > 0) {
+  if (length(str_list) != length(level_list) && length(str_list) > 0) {
     stop("str_list and level_list have different lenghts.")
   }
 
   if (!is.null(style)) {
-    if (inherits(style, "fp_text"))
+    if (inherits(style, "fp_text")) {
       style <- lapply(seq_len(length(str_list)), function(x) style)
+    }
   }
   x <- list(
     str = str_list,
@@ -1221,9 +1423,11 @@ to_pml.unordered_list <- function(x, add_ns = FALSE, ...) {
     open_tag <- ap_ns_yes
   }
   if (!is.null(x$style)) {
-    style_str <- sapply(x$style, format, type = "pml")
+    style_str <- vapply(x$style, format, character(1), type = "pml")
     style_str <- rep_len(style_str, length.out = length(x$str))
-  } else style_str <- rep("<a:rPr/>", length(x$str))
+  } else {
+    style_str <- rep("<a:rPr/>", length(x$str))
+  }
   tmpl <- "%s<a:pPr%s>%s</a:pPr><a:r>%s<a:t>%s</a:t></a:r></a:p>"
   lvl <- sprintf(" lvl=\"%.0f\"", x$lvl - 1)
   lvl <- ifelse(x$lvl > 1, lvl, "")

@@ -2,36 +2,64 @@
 % Please edit documentation in R/pptx_slide_manip.R
 \name{remove_slide}
 \alias{remove_slide}
-\title{Remove a slide}
+\title{Remove slide(s)}
 \usage{
 remove_slide(x, index = NULL, rm_images = FALSE)
 }
 \arguments{
 \item{x}{an rpptx object}
 
-\item{index}{slide index, default to current slide position.}
+\item{index}{slide index or a vector of slide indices to remove,
+default to current slide position.}
 
-\item{rm_images}{if TRUE (defaults to FALSE), images presented in
-the slide to remove are also removed from the file.}
+\item{rm_images}{unused anymore.}
 }
 \description{
-Remove a slide from a pptx presentation.
+Remove one or more slides from a pptx presentation.
 }
 \note{
 cursor is set on the last slide.
 }
 \examples{
-my_pres <- read_pptx()
-my_pres <- add_slide(my_pres, "Title and Content")
-my_pres <- remove_slide(my_pres)
+library(officer)
+
+x <- read_pptx()
+x <- add_slide(x, "Title and Content")
+x <- remove_slide(x)
+
+# Remove multiple slides at once
+x <- read_pptx()
+x <- add_slide(x, "Title and Content")
+x <- add_slide(
+  x,
+  layout = "Two Content",
+  `Title 1` = "A title",
+  dt = "Jan. 26, 2025",
+  `body[2]` = "Body 2",
+  left = "Left side",
+  `6` = "Footer"
+)
+x <- add_slide(
+  x,
+  layout = "Two Content",
+  `Title 1` = "A title",
+  dt = "Jan. 26, 2025",
+  `body[2]` = "Body 2",
+  left = "Left side",
+  `6` = "Footer"
+)
+x <- add_slide(x, "Title and Content")
+x <- remove_slide(x, index = c(2, 4))
+pptx_file <- print(x, target = tempfile(fileext = ".pptx"))
+pptx_file
 }
 \seealso{
 \code{\link[=read_pptx]{read_pptx()}}, \code{\link[=ph_with]{ph_with()}}, \code{\link[=ph_remove]{ph_remove()}}
 
 Other functions to manipulate slides:
-\code{\link{add_slide}()},
-\code{\link{move_slide}()},
-\code{\link{on_slide}()},
-\code{\link{set_notes}()}
+\code{\link[=add_slide]{add_slide()}},
+\code{\link[=move_slide]{move_slide()}},
+\code{\link[=on_slide]{on_slide()}},
+\code{\link[=set_notes]{set_notes()}}
 }
 \concept{slide_manipulation}

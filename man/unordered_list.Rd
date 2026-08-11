@@ -20,33 +20,42 @@ inherit from default sizes of the presentation.}
 unordered list of text for PowerPoint
 presentations. Each text is associated with
 a hierarchy level.
+
+Consider using \code{\link[=block_list_items]{block_list_items()}} instead, which supports
+rich text via \code{\link[=fpar]{fpar()}}, works in both Word and PowerPoint,
+and supports numbered lists.
 }
 \examples{
 unordered_list(
-level_list = c(1, 2, 2, 3, 3, 1),
-str_list = c("Level1", "Level2", "Level2", "Level3", "Level3", "Level1"),
-style = fp_text(color = "red", font.size = 0) )
+  level_list = c(1, 2, 2, 3, 3, 1),
+  str_list = c("Level1", "Level2", "Level2", "Level3", "Level3", "Level1"),
+  style = fp_text(color = "red", font.size = 0)
+)
+
 unordered_list(
-level_list = c(1, 2, 1),
-str_list = c("Level1", "Level2", "Level1"),
-style = list(
-  fp_text(color = "red", font.size = 0),
-  fp_text(color = "pink", font.size = 0),
-  fp_text(color = "orange", font.size = 0)
-  ))
+  level_list = c(1, 2, 1),
+  str_list = c("Level1", "Level2", "Level1"),
+  style = list(
+    fp_text(color = "red", font.size = 0),
+    fp_text(color = "pink", font.size = 0),
+    fp_text(color = "orange", font.size = 0)
+  )
+)
 }
 \seealso{
 \code{\link[=ph_with]{ph_with()}}
 
-Other block functions for reporting: 
-\code{\link{block_caption}()},
-\code{\link{block_gg}()},
-\code{\link{block_list}()},
-\code{\link{block_pour_docx}()},
-\code{\link{block_section}()},
-\code{\link{block_table}()},
-\code{\link{block_toc}()},
-\code{\link{fpar}()},
-\code{\link{plot_instr}()}
+Other block functions for reporting:
+\code{\link[=block_caption]{block_caption()}},
+\code{\link[=block_gg]{block_gg()}},
+\code{\link[=block_list]{block_list()}},
+\code{\link[=block_list_items]{block_list_items()}},
+\code{\link[=block_pour_docx]{block_pour_docx()}},
+\code{\link[=block_section]{block_section()}},
+\code{\link[=block_table]{block_table()}},
+\code{\link[=block_toc]{block_toc()}},
+\code{\link[=fpar]{fpar()}},
+\code{\link[=list_item]{list_item()}},
+\code{\link[=plot_instr]{plot_instr()}}
 }
 \concept{block functions for reporting}

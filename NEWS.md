@@ -1,10 +1,189 @@
+# officer 0.7.7
+
+## Features
+
+- `body_add_gg()` gains an `alt_text` argument (as `ph_with()` for ggplot
+objects); if empty, the alt text defined with `ggplot2::labs(alt = ...)` is
+used. `body_add_img()` gains an `alt` argument, passed to `external_img()`
+(discussion #733).
+- `docx_summary()` gains a `para_id` column containing the unique paragraph
+id, allowing to join its results with those of `docx_comments()`
+(discussion #732).
+
+## Issues
+
+- fix lost images : keep images referenced through VML `<v:imagedata>` (e.g. EMF 
+previews of embedded OLE objects) when saving a document, instead of dropping 
+their media and relationship (#730).
+
+
+# officer 0.7.6
+
+## Issues
+
+- drop deprecated special names (`.Names`, `.Dim`, `.Dimnames`) in `structure()`
+calls, flagged as a NOTE by r-devel checks (#728).
+
+# officer 0.7.5
+
+## Word
+
+- drop deprecated `seqfield` argument in `run_word_field()` and remove `run_seqfield()`
+(old duplicate of `run_word_field()`) .
+
+## RTF
+
+- RTF sections were debugged and now behave correctly: page orientation,
+columns, margins and per-section headers / footers all apply as expected,
+including multi-column layouts (#726, thanks to Nathan Kosiba).
+
+- New paragraph style API for RTF, aligned with `docx_set_paragraph_style()`
+on the Word side. `rtf_set_paragraph_style()` is now exported and takes
+`style_id`, `style_name`, `base_on`, `fp_p`, `fp_t` and `outline_level`;
+`rtf_styles_info()` returns the document's style table. `rtf_add()` accepts
+a `style` argument so paragraphs (character, factor, double, fpar,
+block_list) can reference a named style. `rtf_doc()` registers built-in
+`"heading 1"` / `"heading 2"` / `"heading 3"` styles with `\outlinelevel`
+values, so styled paragraphs feed Word's navigation pane and TOC field.
+Use `rtf_set_paragraph_style()` after `rtf_doc()` to override a built-in
+style; the row keyed by `style_id` is updated in place.
+
+- `rtf_add()` now accepts [block_toc()] objects and emits a TOC field
+in the RTF stream, in parity with `body_add_toc()` for Word. Word
+populates the table at open time using the outline levels carried by
+the built-in heading styles; LibreOffice does not render the TOC
+automatically.
+
+## Excel features
+
+- Images and ggplot drawings placed on Excel sheets with
+`sheet_add_drawing()` can now be anchored to cells. Pass
+`anchor = "B2:H20"` (a cell range) to make the drawing move and
+size with cells, Excel's default behaviour. Pass `anchor = "B2"`
+(a single cell) to make it move but keep its own size. Omit
+`anchor` for the previous fixed-position layout. The `edit_as`
+argument controls what happens when rows or columns are resized.
+The same options are available to charts inserted via 'mschart'.
+- Excel sheets can host the chartEx chart family (boxplot, funnel,
+histogram, pareto, sunburst, treemap, waterfall) in addition to the
+classic chart types. The new helper `ooxml_chart_uris()` returns the
+identifiers needed by `xlsx_drawing` to wire either family.
+- Two new building blocks for packages that emit OOXML directly
+(such as 'mschart'): `solid_fill(color)` returns a DrawingML
+solid-fill fragment with optional alpha; `to_pml()` now has an
+`sp_line` method exposing line-properties conversion that was
+previously internal.
+
+# officer 0.7.4
+
+## Features
+
+### Excel
+
+- new functions `sheet_write_data()` and `sheet_add_drawing()` for writing
+data and inserting drawings (charts, vector graphics) into xlsx workbooks.
+`sheet_write_data()` is an S3 generic: beside `data.frame`, it also accepts
+a `character` vector (one cell per element, vertical by default; 
+`direction = "horizontal"` for a row), an [`fpar()`] (richtext inline cell honouring
+bold, italic, underline, strikethrough, size, colour, font, sub/superscript)
+and a [`block_list()`] (one cell per `fpar` item, stacked).
+`sheet_add_drawing()` has an `external_img` method and a `gg` method.
+- new function `sheet_remove()` to delete a sheet from an xlsx workbook.
+`add_sheet()` is purely additive and never drops any sheet; call
+`sheet_remove()` explicitly if the template's default sheet is not wanted.
+
+### Word
+
+- `write_docx_settings()` now preserves the existing `settings.xml`
+content instead of rebuilding it from scratch. This fixes the loss of
+embedded font settings, math properties, footnote/endnote settings and 
+other XML elements during docx roundtrips (#554).
+- new function `docx_embed_font()` to embed TrueType or OpenType font
+files into Word documents. Embedded fonts ensure correct rendering on
+systems where the font is not installed (#554).
+
+### Word & PowerPoint
+
+- new functions `list_item()`, `block_list_items()` and
+`body_add_list()` to create bullet or numbered lists with rich text
+(`fpar`) and multi-level nesting. Works in both Word and PowerPoint
+documents (#314).
+
+### Formatting properties
+
+- `fp_par()` and `fp_par_lite()` gain `first_line` and `hanging`
+arguments to control paragraph first-line and hanging indents (in
+points). Honored by the Word, PowerPoint, HTML and RTF renderers.
+`hanging` wins when both are provided (flextable #704).
+
+## Issues
+
+- `sheet_select()` now deselects other sheets, fixing the issue where
+multiple tabs appeared selected when opening the workbook.
+
+# officer 0.7.3
+
+## Features
+
+- function `remove_slide()` now supports deletion of multiple slides
+thanks to Wahiduzzaman Khan (#691).
+- add `cursor_reach_index()` to set the cursor at a specific index position in
+the document (#574).
+- `set_doc_properties()` gains a new argument `hyperlink_base` to set the base
+URL for relative hyperlinks in Word documents. `doc_properties()` now returns
+the `HyperlinkBase` property when available (#630).
+
+## Issues
+
+- fix feed_from_xml for 'officedown'.
+- `remove_field` argument of function `docx_summary()` now work as expected.
+- also remove relationships in `sanitize_images()` (#708).
+- Package now supports read-only installations (e.g., when installed as root or 
+via Nix). Previously, attempting to create presentations would fail with 
+permission errors in read-only environments (#706).
+
+## Changes
+
+- Defunct function `docx_reference_img()`.
+
+# officer 0.7.2
+
+## Issues
+
+- RTF support strike text setting.
+- fix an issue with bookmark selections in `docx_summary()`.
+- fix `fp_par_lite()` management of argument `tabs`.
+- there was a regression with svg in docx, it is solved now.
+
+## Features
+
+- new internal utilities `base64_to_image()`, `as_base64()`, `from_base64()` 
+and `plot_in_png()`.
+
+
 # officer 0.7.1
+
+## Features
+
+- new function `floating_external_img()` to add a floating image in a 'Word' 
+document.
+
+## Changes
+
+- Refactoring of `docx_summary()`: the function now provide more run-level 
+information (text formatting, images, hyperlinks, bookmarks). 
+- Refactoring of `sanitize_images()`: the function now works as expected. It will
+be unexported soon since it is now automatically called before writing documents
+and is therefore no longer useful to end users.
+- Remove defunct `slip_in*` functions.
 
 ## Issues
 
 - WIP: phs_annotate() (#682)
 - Fix RTF sections that were sometimes invisible
 - issue with image in google docs should now be fixed (#689)
+- add automatically namespaces when calling `write_elements_to_context()`
+- Fix lists styles with `body_import_docx()` thanks to Sean Anderson.
 
 # officer 0.7.0
 
@@ -44,7 +223,7 @@ Word users could have.
 - Fix RTF generation so that `fp_par_lite()` works also for RTF output.
 - Fix `doc_summary(... detailed=TRUE)` when the runs has a shading (w:shd) with 
 a fill but no color attribute.
-- `plot_layout_properties()`: new `slide_idx` arg to specify which slide’s layout 
+- `plot_layout_properties()`: new `slide_idx` arg to specify which slide's layout 
   to plot. The plot title now also contains the master's name (#666)
 
 # officer 0.6.9
@@ -202,7 +381,7 @@ with flextable (for Word and RTF).
 ## Features 
 
 - `fp_border()` gains support for all line border styles listed in ECMA-376 
-  § 17.18.2 and allowed CSS border styles. Closes #165 and #443.
+  section 17.18.2 and allowed CSS border styles. Closes #165 and #443.
 
 ## Changes
 

@@ -47,7 +47,6 @@
 #' @example inst/examples/example_body_append_context.R
 #' @family functions for adding content
 body_append_start_context <- function(x, additional_ns = character()) {
-
   if (!is.character(additional_ns)) {
     cli::cli_abort("`additional_ns` must be a named character vector.")
   }
@@ -61,8 +60,12 @@ body_append_start_context <- function(x, additional_ns = character()) {
   current_xml_file <- tempfile(fileext = ".txt")
   xml_doc <- docx_body_xml(x)
   current_xml_str <- as.character(xml_doc)
-  writeLines(current_xml_str, current_xml_file)
-  current_xml_str_lines <- readLines(current_xml_file)
+  writeLines(current_xml_str, current_xml_file, useBytes = TRUE)
+  current_xml_str_lines <- readLines(
+    current_xml_file,
+    encoding = "UTF-8",
+    warn = FALSE
+  )
   unlink(current_xml_file)
 
   section_start <- grepl("<w:sectPr", current_xml_str_lines)
@@ -113,7 +116,12 @@ body_append_start_context <- function(x, additional_ns = character()) {
 write_elements_to_context <- function(context, ...) {
   objects <- list(...)
   for (obj in objects) {
-    cat(to_wml(obj), sep = "\n", file = context$file_con, append = TRUE)
+    cat(
+      to_wml(obj, add_ns = TRUE),
+      sep = "\n",
+      file = context$file_con,
+      append = TRUE
+    )
   }
   context
 }

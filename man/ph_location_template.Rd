@@ -56,24 +56,26 @@ This label can then be reused by other functions such as \code{ph_location_label
 It can be set with argument \code{newlabel}.
 }
 \examples{
+library(officer)
+
 doc <- read_pptx()
 doc <- add_slide(doc, "Title and Content")
-doc <- ph_with(doc, "Title",
-  location = ph_location_type(type = "title")
-)
-doc <- ph_with(doc, "Hello world",
+doc <- ph_with(doc, "Title", location = ph_location_type(type = "title"))
+doc <- ph_with(
+  doc,
+  "Hello world",
   location = ph_location_template(top = 4, type = "title")
 )
 print(doc, target = tempfile(fileext = ".pptx"))
 }
 \seealso{
-Other functions for placeholder location: 
-\code{\link{ph_location}()},
-\code{\link{ph_location_fullsize}()},
-\code{\link{ph_location_id}()},
-\code{\link{ph_location_label}()},
-\code{\link{ph_location_left}()},
-\code{\link{ph_location_right}()},
-\code{\link{ph_location_type}()}
+Other functions for placeholder location:
+\code{\link[=ph_location]{ph_location()}},
+\code{\link[=ph_location_fullsize]{ph_location_fullsize()}},
+\code{\link[=ph_location_id]{ph_location_id()}},
+\code{\link[=ph_location_label]{ph_location_label()}},
+\code{\link[=ph_location_left]{ph_location_left()}},
+\code{\link[=ph_location_right]{ph_location_right()}},
+\code{\link[=ph_location_type]{ph_location_type()}}
 }
 \concept{functions for placeholder location}

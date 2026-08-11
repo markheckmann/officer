@@ -62,7 +62,7 @@ test_that("list bookmarks", {
 test_that("console printing", {
   x <- read_docx()
   x <- body_add_par(x, "Hello world", style = "Normal")
-  expect_output(print(x), "docx document with")
+  expect_output(print(x), "rdocx document with")
 })
 
 test_that("check extention and print document", {
@@ -157,6 +157,17 @@ test_that("cursor and position", {
   ds_ <- docx_summary(doc)
 
   expect_equal(ds_$text, c("new 1", "paragraph 1", "new 2", "paragraph 2"))
+
+  # cursor_reach_index
+  doc <- cursor_reach_index(doc, 2)
+  current_node <- docx_current_block_xml(doc)
+  expect_equal(xml_text(current_node), "paragraph 1")
+  doc <- cursor_reach_index(doc, 4)
+  current_node <- docx_current_block_xml(doc)
+  expect_equal(xml_text(current_node), "paragraph 2")
+  expect_error(cursor_reach_index(doc, 0), "invalid index")
+  expect_error(cursor_reach_index(doc, 5), "invalid index")
+
   doc <- body_remove(doc)
   doc <- body_remove(doc)
   ds_ <- docx_summary(doc)

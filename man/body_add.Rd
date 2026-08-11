@@ -9,6 +9,7 @@
 \alias{body_add.data.frame}
 \alias{body_add.block_caption}
 \alias{body_add.block_list}
+\alias{body_add.block_list_items}
 \alias{body_add.block_toc}
 \alias{body_add.external_img}
 \alias{body_add.run_pagebreak}
@@ -42,6 +43,8 @@ body_add(x, value, ...)
 \method{body_add}{block_caption}(x, value, ...)
 
 \method{body_add}{block_list}(x, value, ...)
+
+\method{body_add}{block_list_items}(x, value, ...)
 
 \method{body_add}{block_toc}(x, value, ...)
 
@@ -146,6 +149,8 @@ each iteraction over the elements, as a consequence the
 function only append elements at the end of the document
 and does not allow to insert elements at a specific position.
 
+\item \code{body_add(block_list_items)}: add a \link{block_list_items} object (bullet or numbered list).
+
 \item \code{body_add(block_toc)}: add a table of content (a \link{block_toc} object).
 
 \item \code{body_add(external_img)}: add an image (a \link{external_img} object).
@@ -166,28 +171,57 @@ and does not allow to insert elements at a specific position.
 \section{Illustrations}{
 
 
-\if{html}{\figure{body_add_doc_1.png}{options: width=70\%}}
+\if{html}{\figure{body_add_doc_1.png}{options: style="width:70\%;"}}
 }
 
 \examples{
-doc_1 <- read_docx()
-doc_1 <- body_add(doc_1, "Table of content", style = "heading 1")
-doc_1 <- body_add(doc_1, block_toc())
-doc_1 <- body_add(doc_1, run_pagebreak())
-doc_1 <- body_add(doc_1, "A title", style = "heading 1")
-doc_1 <- body_add(doc_1, head(iris), style = "table_template")
-doc_1 <- body_add(doc_1, "Another title", style = "heading 1")
-doc_1 <- body_add(doc_1, letters, style = "Normal")
-doc_1 <- body_add(
-  doc_1,
-  block_section(prop_section(type = "continuous"))
-)
-doc_1 <- body_add(doc_1, plot_instr(code = barplot(1:5, col = 2:6)))
-doc_1 <- body_add(
-  doc_1,
+# This example demonstrates the versatility of body_add()
+# by showing how to add various content types to a Word document
+
+# Create a new Word document
+x <- read_docx()
+
+# Add a heading for the table of contents section
+x <- body_add(x, "Table of content", style = "heading 1")
+
+# Insert an automatic table of contents
+# This will list all headings in the document
+x <- body_add(x, block_toc())
+
+# Insert a page break to start content on a new page
+x <- body_add(x, run_pagebreak())
+
+# Add a main section heading
+x <- body_add(x, "Iris Dataset Sample", style = "heading 1")
+
+# Add a data.frame as a table
+# The first 6 rows of the iris dataset will be displayed
+x <- body_add(x, head(iris), style = "table_template")
+
+# Add another section heading
+x <- body_add(x, "Alphabetic List", style = "heading 1")
+
+# Add a character vector as paragraphs
+# Each letter will appear as a separate paragraph with "Normal" style
+x <- body_add(x, letters, style = "Normal")
+
+# Insert a continuous section break
+# Content continues on the same page but section properties can change
+x <- body_add(x, block_section(prop_section(type = "continuous")))
+
+# Add a plot created with R base graphics
+# plot_instr() captures the plotting code to generate the image
+x <- body_add(x, plot_instr(code = barplot(1:5, col = 2:6)))
+
+# Change to landscape orientation for the next section
+# This creates a new section with landscape page layout
+x <- body_add(
+  x,
   block_section(prop_section(page_size = page_size(orient = "landscape")))
 )
-print(doc_1, target = tempfile(fileext = ".docx"))
-# print(doc_1, target = "test.docx")
+
+# Save the document to a file
+output_file <- tempfile(fileext = ".docx")
+print(x, target = output_file)
 }
 \keyword{internal}

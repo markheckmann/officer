@@ -38,7 +38,7 @@ in the upper left corner (in \emph{blue}).}
 \code{\link[=layout_properties]{layout_properties()}}) in the upper right corner (in \emph{green}).}
 
 \item{cex}{List or vector to specify font size for \code{labels}, \code{type}, and \code{id}. Default is
-\code{c(labels = .5, type = .5, id = .5)}. See \code{\link[graphics:text]{graphics::text()}} for details on how \code{cex} works.
+\code{c(labels = 0.5, type = 0.5, id = 0.5)}. See \code{\link[graphics:text]{graphics::text()}} for details on how \code{cex} works.
 Matching by position and partial name matching is supported. A single numeric value will apply to all
 three parameters.}
 
@@ -82,21 +82,25 @@ plot_layout_properties(x)
 plot_layout_properties(x, slide_idx = 1)
 
 # change appearance: what to show, font size, legend etc.
-plot_layout_properties(x, layout = "Two Content", title = FALSE, type = FALSE, id = FALSE)
+plot_layout_properties(
+  x,
+  layout = "Two Content",
+  title = FALSE,
+  type = FALSE,
+  id = FALSE
+)
 plot_layout_properties(x, layout = 4, cex = c(labels = .8, id = .7, type = .7))
 plot_layout_properties(x, 1, legend = TRUE)
 }
 \seealso{
 Other functions for reading presentation information:
-\code{\link{add_annotated_layouts}()},
-\code{\link{annotate_base}()},
-\code{\link{color_scheme}()},
-\code{\link{doc_properties}()},
-\code{\link{layout_properties}()},
-\code{\link{layout_summary}()},
-\code{\link{length.rpptx}()},
-\code{\link{phs_annotate}()},
-\code{\link{slide_size}()},
-\code{\link{slide_summary}()}
+\code{\link[=annotate_base]{annotate_base()}},
+\code{\link[=color_scheme]{color_scheme()}},
+\code{\link[=doc_properties]{doc_properties()}},
+\code{\link[=layout_properties]{layout_properties()}},
+\code{\link[=layout_summary]{layout_summary()}},
+\code{\link[=length.rpptx]{length.rpptx()}},
+\code{\link[=slide_size]{slide_size()}},
+\code{\link[=slide_summary]{slide_summary()}}
 }
-\concept{ppt_info}
+\concept{functions for reading presentation information}

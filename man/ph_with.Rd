@@ -9,6 +9,7 @@
 \alias{ph_with.Date}
 \alias{ph_with.block_list}
 \alias{ph_with.unordered_list}
+\alias{ph_with.block_list_items}
 \alias{ph_with.data.frame}
 \alias{ph_with.gg}
 \alias{ph_with.plot_instr}
@@ -33,6 +34,8 @@ ph_with.Date(x, value, location, date_format = NULL, ...)
 ph_with.block_list(x, value, location, level_list = integer(0), ...)
 
 ph_with.unordered_list(x, value, location, ...)
+
+ph_with.block_list_items(x, value, location, ...)
 
 ph_with.data.frame(
   x,
@@ -128,6 +131,9 @@ of \code{\link[=fpar]{fpar()}} to a new shape on the current slide.
 \item \code{ph_with.unordered_list()}: add a \code{\link[=unordered_list]{unordered_list()}} made
 of \code{\link[=fpar]{fpar()}} to a new shape on the current slide.
 
+\item \code{ph_with.block_list_items()}: add a \code{\link[=block_list_items]{block_list_items()}} (bullet or numbered list)
+to a new shape on the current slide.
+
 \item \code{ph_with.data.frame()}: add a data.frame to a new shape on the current slide with
 function \code{\link[=block_table]{block_table()}}. Use package 'flextable' instead for more
 advanced formattings.
@@ -175,7 +181,7 @@ The \code{location} argument of \code{ph_with()} either expects a location objec
 \section{Illustrations}{
 
 
-\if{html}{\figure{ph_with_doc_1.png}{options: width=80\%}}
+\if{html}{\figure{ph_with_doc_1.png}{options: style="width:80\%;"}}
 }
 
 \examples{
@@ -190,33 +196,44 @@ sz <- slide_size(doc_1)
 # add text and a table ----
 doc_1 <- add_slide(doc_1, layout = "Two Content", master = "Office Theme")
 doc_1 <- ph_with(
-  x = doc_1, value = c("Table cars"),
+  x = doc_1,
+  value = c("Table cars"),
   location = ph_location_type(type = "title")
 )
 doc_1 <- ph_with(
-  x = doc_1, value = names(cars),
+  x = doc_1,
+  value = names(cars),
   location = ph_location_left()
 )
 doc_1 <- ph_with(
-  x = doc_1, value = cars,
+  x = doc_1,
+  value = cars,
   location = ph_location_right()
 )
 doc_1 <- ph_with(
-  x = doc_1, value = Sys.Date(),
+  x = doc_1,
+  value = Sys.Date(),
   location = ph_location_type("dt")
 )
 
 # add a base plot ----
 anyplot <- plot_instr(code = {
   col <- c(
-    "#440154FF", "#443A83FF", "#31688EFF",
-    "#21908CFF", "#35B779FF", "#8FD744FF", "#FDE725FF"
+    "#440154FF",
+    "#443A83FF",
+    "#31688EFF",
+    "#21908CFF",
+    "#35B779FF",
+    "#8FD744FF",
+    "#FDE725FF"
   )
   barplot(1:7, col = col, yaxt = "n")
 })
 
 doc_1 <- add_slide(doc_1, "Title and Content")
-doc_1 <- ph_with(doc_1, anyplot,
+doc_1 <- ph_with(
+  doc_1,
+  anyplot,
   location = ph_location_fullsize(),
   bg = "#006699"
 )
@@ -231,41 +248,48 @@ if (require("ggplot2")) {
     ) +
     theme_minimal()
   doc_1 <- ph_with(
-    x = doc_1, value = gg_plot,
+    x = doc_1,
+    value = gg_plot,
     location = ph_location_type(type = "body"),
     bg = "transparent"
   )
   doc_1 <- ph_with(
-    x = doc_1, value = "graphic title",
+    x = doc_1,
+    value = "graphic title",
     location = ph_location_type(type = "title")
   )
 }
 
 # add a external images ----
-doc_1 <- add_slide(doc_1,
-  layout = "Title and Content",
-  master = "Office Theme"
-)
+doc_1 <- add_slide(doc_1, layout = "Title and Content", master = "Office Theme")
 doc_1 <- ph_with(
-  x = doc_1, value = empty_content(),
+  x = doc_1,
+  value = empty_content(),
   location = ph_location(
-    left = 0, top = 0,
-    width = sz$width, height = sz$height, bg = "black"
+    left = 0,
+    top = 0,
+    width = sz$width,
+    height = sz$height,
+    bg = "black"
   )
 )
 
 svg_file <- file.path(R.home(component = "doc"), "html/Rlogo.svg")
 if (require("rsvg")) {
   doc_1 <- ph_with(
-    x = doc_1, value = "External images",
+    x = doc_1,
+    value = "External images",
     location = ph_location_type(type = "title")
   )
   doc_1 <- ph_with(
-    x = doc_1, external_img(svg_file, 100 / 72, 76 / 72),
-    location = ph_location_right(), use_loc_size = FALSE
+    x = doc_1,
+    external_img(svg_file, 100 / 72, 76 / 72),
+    location = ph_location_right(),
+    use_loc_size = FALSE
   )
   doc_1 <- ph_with(
-    x = doc_1, external_img(svg_file),
+    x = doc_1,
+    external_img(svg_file),
     location = ph_location_left(),
     use_loc_size = TRUE
   )
@@ -289,26 +313,31 @@ bl <- block_list(
 )
 doc_1 <- add_slide(doc_1, "Title and Content")
 doc_1 <- ph_with(
-  x = doc_1, value = bl,
+  x = doc_1,
+  value = bl,
   location = ph_location_type(type = "body")
 )
 
 
 # fpar ------
 fpt <- fp_text(
-  bold = TRUE, font.family = "Bradley Hand",
-  font.size = 150, color = "#F5595B"
+  bold = TRUE,
+  font.family = "Bradley Hand",
+  font.size = 150,
+  color = "#F5595B"
 )
 hw <- fpar(
   ftext("hello ", fpt),
   hyperlink_ftext(
     href = "https://cran.r-project.org/index.html",
-    text = "cran", prop = fpt
+    text = "cran",
+    prop = fpt
   )
 )
 doc_1 <- add_slide(doc_1, "Title and Content")
 doc_1 <- ph_with(
-  x = doc_1, value = hw,
+  x = doc_1,
+  value = hw,
   location = ph_location_type(type = "body")
 )
 # unordered_list ----
@@ -319,7 +348,8 @@ ul <- unordered_list(
 )
 doc_1 <- add_slide(doc_1, "Title and Content")
 doc_1 <- ph_with(
-  x = doc_1, value = ul,
+  x = doc_1,
+  value = ul,
   location = ph_location_type()
 )
 
@@ -329,14 +359,14 @@ print(doc_1, target = fileout)
 # Example using short-form locations ----
 x <- read_pptx()
 x <- add_slide(x, "Title Slide")
-x <- ph_with(x, "A title", "Title 1")        # label
-x <- ph_with(x, "A subtitle", 3)             # id
-x <- ph_with(x, "A left text", "left")       # keyword
-x <- ph_with(x, Sys.Date(), "dt[1]")         # type + index
-x <- ph_with(x, "More content", c(5,.5,5,2)) # numeric vector (left, top, width, heigh)
-\dontrun{
-print(x, preview = TRUE) # opens file locally
-}
+x <- ph_with(x, "A title", "Title 1") # label
+x <- ph_with(x, "A subtitle", 3) # id
+x <- ph_with(x, "A left text", "left") # keyword
+x <- ph_with(x, Sys.Date(), "dt[1]") # type + index
+x <- ph_with(x, "More content", c(5, .5, 5, 2)) # numeric vector (left, top, width, heigh)
+# \dontrun{
+# print(x, preview = TRUE) # opens file locally
+# }
 }
 \seealso{
 Specify placeholder locations with \link{ph_location_type}, \link{ph_location},

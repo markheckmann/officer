@@ -31,6 +31,23 @@ to_rtf.fpar <- function(x, ...) {
   rtf_chunks <- lapply(chks, to_rtf)
   rtf_chunks$collapse <- ""
   rtf_chunks <- do.call(paste0, rtf_chunks)
+  style_index <- attr(x, "rtf_style_index")
+  if (!is.null(style_index)) {
+    # Canonical RTF emission for a styled paragraph (RTF spec, additive
+    # model): \pard\plain \sN <style properties duplicated> text \par.
+    # The duplicated properties make readers that ignore styles still
+    # render the formatting, and prevent Word from recording spurious
+    # "overrides" against the named style.
+    style_props <- attr(x, "rtf_style_props")
+    if (is.null(style_props)) style_props <- ""
+    return(paste0(
+      sprintf("{\\pard\\plain\\s%.0f", style_index),
+      style_props,
+      " ",
+      rtf_chunks,
+      "\\par}"
+    ))
+  }
   paste0("{", ppr_rtf(x$fp_p), rtf_chunks, "\\par}")
 }
 
@@ -48,7 +65,6 @@ to_rtf.block_list <- function(x, ...) {
   rtf_blocks$collapse <- ""
   do.call(paste0, rtf_blocks)
 }
-
 
 
 ## to_rtf chunks ----
@@ -99,9 +115,231 @@ to_rtf.external_img <- function(x, ...) {
 
   rtf_str <- sprintf(
     "{\\pict\\pngblip\\picwgoal%.0f\\pichgoal%.0f ",
-    width * 1440, height * 1440
+    width * 1440,
+    height * 1440
   )
   paste(rtf_str, dat, "\n}", sep = "")
+}
+
+
+#' @export
+to_rtf.floating_external_img <- function(x, ...) {
+  dims <- attr(x, "dims")
+  width <- dims$width
+  height <- dims$height
+
+  pos <- attr(x, "pos")
+  pos_x <- pos$x
+  pos_y <- pos$y
+  pos_h_from <- pos$h_from
+  pos_v_from <- pos$v_from
+
+  wrap <- attr(x, "wrap")
+  wrap_type <- wrap$type
+  wrap_side <- wrap$side
+  wrap_dist_top <- wrap$dist_top
+  wrap_dist_bottom <- wrap$dist_bottom
+  wrap_dist_left <- wrap$dist_left
+  wrap_dist_right <- wrap$dist_right
+
+  if (!grepl("\\.png$", x)) {
+    imgpath <- tempfile(fileext = ".png")
+    img <- magick::image_read(x)
+    magick::image_write(img, path = imgpath)
+  } else {
+    imgpath <- x
+  }
+
+  # Read image data
+  dat <- readBin(imgpath, what = "raw", size = 1, endian = "little", n = 1e+8)
+  dat <- paste(dat, collapse = "")
+
+  # RTF units: twips (1/1440 inch)
+  width_twips <- width * 1440
+  height_twips <- height * 1440
+  pos_x_twips <- pos_x * 1440
+  pos_y_twips <- pos_y * 1440
+
+  # EMU units for wrap distances (1 EMU = 1/914400 inch, so multiply inches by 914400)
+  # But for RTF {\sp{\sn property}{\sv value}}, wrap distances are in EMUs
+  dist_t_emus <- wrap_dist_top * 914400
+  dist_b_emus <- wrap_dist_bottom * 914400
+  dist_l_emus <- wrap_dist_left * 914400
+  dist_r_emus <- wrap_dist_right * 914400
+
+  # RTF wrap codes for \shpwr:
+  # 1 = wrap around top and bottom
+  # 2 = wrap around shape
+  # 3 = none (as if shape isn't present)
+  # 4 = wrap tightly
+  # 5 = wrap text through shape
+  wrap_code <- switch(
+    wrap_type,
+    "square" = "\\shpwr2",
+    "tight" = "\\shpwr4",
+    "topAndBottom" = "\\shpwr1",
+    "through" = "\\shpwr5",
+    "none" = "\\shpwr3",
+    "\\shpwr2" # Default to square wrap
+  )
+
+  # RTF wrap side codes for \shpwrk:
+  # 0 = wrap both sides
+  # 1 = wrap left side only
+  # 2 = wrap right side only
+  # 3 = wrap only on largest side
+  wrap_side_code <- switch(
+    wrap_side,
+    "bothSides" = "\\shpwrk0",
+    "left" = "\\shpwrk1",
+    "right" = "\\shpwrk2",
+    "largest" = "\\shpwrk3",
+    "\\shpwrk0" # Default
+  )
+
+  # RTF positioning codes
+  # Horizontal positioning relative to:
+  # \shpbxpage = page, \shpbxmargin = margin, \shpbxcolumn = column
+  pos_h_code <- switch(
+    pos_h_from,
+    "page" = "\\shpbxpage",
+    "margin" = "\\shpbxmargin",
+    "column" = "\\shpbxcolumn",
+    "character" = "\\shpbxcolumn",
+    "\\shpbxmargin" # Default
+  )
+
+  # Vertical positioning relative to:
+  # \shpbypage = page, \shpbymargin = margin, \shpbypara = paragraph
+  pos_v_code <- switch(
+    pos_v_from,
+    "page" = "\\shpbypage",
+    "margin" = "\\shpbymargin",
+    "paragraph" = "\\shpbypara",
+    "line" = "\\shpbypara",
+    "\\shpbymargin" # Default
+  )
+
+  # posrelh property: 0=margin, 1=page, 2=column
+  posrelh <- switch(
+    pos_h_from,
+    "margin" = 0,
+    "page" = 1,
+    "column" = 2,
+    "character" = 2,
+    0 # Default to margin
+  )
+
+  # posrelv property: 0=margin, 1=page, 2=paragraph
+  posrelv <- switch(
+    pos_v_from,
+    "margin" = 0,
+    "page" = 1,
+    "paragraph" = 2,
+    "line" = 2,
+    0 # Default to margin
+  )
+
+  # Build the RTF shape structure following Word's format:
+  # {\shp \shpleft... \shptop... \shpright... \shpbottom... \shpfhdr0
+  #       \shpbx... \shpbxignore \shpby... \shpbyignore
+  #       \shpwr... \shpwrk... \shpfblwtxt... \shpz... \shplid...
+  #       {\*\shpinst {\sp{\sn prop}{\sv val}}... \par}}}
+
+  rtf_str <- paste0(
+    "{\\shp",
+    sprintf(
+      "\\shpleft%.0f\\shptop%.0f\\shpright%.0f\\shpbottom%.0f",
+      pos_x_twips,
+      pos_y_twips,
+      pos_x_twips + width_twips,
+      pos_y_twips + height_twips
+    ),
+    "\\shpfhdr0", # Not in header/footer
+    pos_h_code,
+    "\\shpbxignore", # Horizontal positioning
+    pos_v_code,
+    "\\shpbyignore", # Vertical positioning
+    wrap_code,
+    wrap_side_code, # Wrap type and side
+    "\\shpfblwtxt0", # Image in front of text
+    "\\shpz0", # Z-order
+    "\\shplid1027" # Shape ID
+  )
+
+  # Start the shape properties ({\*\shpinst ...})
+  rtf_str <- paste0(rtf_str, "{\\*\\shpinst")
+
+  # Add shape properties following {\sp{\sn PropertyName}{\sv PropertyValue}} format
+  # shapeType: 75 = picture frame
+  rtf_str <- paste0(rtf_str, "{\\sp{\\sn shapeType}{\\sv 75}}")
+
+  # pib: Binary picture data
+  rtf_str <- paste0(
+    rtf_str,
+    sprintf(
+      "{\\sp{\\sn pib}{\\sv {\\pict\\pngblip\\picwgoal%.0f\\pichgoal%.0f %s}}}",
+      width_twips,
+      height_twips,
+      dat
+    )
+  )
+
+  # Add wrap distances (in EMUs)
+  if (dist_l_emus > 0) {
+    rtf_str <- paste0(
+      rtf_str,
+      sprintf("{\\sp{\\sn dxWrapDistLeft}{\\sv %.0f}}", dist_l_emus)
+    )
+  }
+  if (dist_r_emus > 0) {
+    rtf_str <- paste0(
+      rtf_str,
+      sprintf("{\\sp{\\sn dxWrapDistRight}{\\sv %.0f}}", dist_r_emus)
+    )
+  }
+  if (dist_t_emus > 0) {
+    rtf_str <- paste0(
+      rtf_str,
+      sprintf("{\\sp{\\sn dyWrapDistTop}{\\sv %.0f}}", dist_t_emus)
+    )
+  }
+  if (dist_b_emus > 0) {
+    rtf_str <- paste0(
+      rtf_str,
+      sprintf("{\\sp{\\sn dyWrapDistBottom}{\\sv %.0f}}", dist_b_emus)
+    )
+  }
+
+  # Add positioning properties (posrelh, posrelv are not in the Word example,
+  # but keeping them won't hurt for compatibility with newer readers)
+  # Note: These are commented out since the Word example doesn't include them
+  # rtf_str <- paste0(rtf_str, sprintf("{\\sp{\\sn posrelh}{\\sv %d}}", posrelh))
+  # rtf_str <- paste0(rtf_str, sprintf("{\\sp{\\sn posrelv}{\\sv %d}}", posrelv))
+
+  # fBehindDocument: 0 = in front of text, 1 = behind text
+  # Note: This is redundant with \shpfblwtxt0 above, but Word includes it
+  # rtf_str <- paste0(rtf_str, "{\\sp{\\sn fBehindDocument}{\\sv 0}}")
+
+  # Close the shape structure: \par}}} closes {\*\shpinst and {\shp
+  paste0(rtf_str, "\\par}}}")
+}
+
+
+#' @export
+to_rtf.block_toc <- function(x, ...) {
+  # Field switches must be written with doubled backslashes inside
+  # \fldinst (e.g. \\o, \\h, \\z, \\u). Single-backslash forms collide
+  # with RTF control words (\o = overprint, \h = hidden, \u = Unicode
+  # character), and Word will reject the document as malformed.
+  field <- if (is.null(x$style) && is.null(x$seq_id)) {
+    sprintf("TOC \\\\o \"1-%.0f\" \\\\h \\\\z \\\\u", x$level)
+  } else if (!is.null(x$style)) {
+    sprintf("TOC \\\\h \\\\z \\\\t \"%s\"", x$style)
+  } else {
+    sprintf("TOC \\\\h \\\\z \\\\c \"%s\"", x$seq_id)
+  }
+  paste0("{\\pard ", to_rtf(run_word_field(field = field)), "\\par}")
 }
 
 #' @export
@@ -110,7 +348,12 @@ to_rtf.run_word_field <- function(x, ...) {
   if (!is.null(x$pr)) {
     rtf_fp <- rpr_rtf(x$pr)
   }
-  sprintf("%s{\\field{\\*\\fldinst %s}}", rtf_fp, x$field)
+  # The \fldrslt group is required by the RTF spec for a field group:
+  # {\field {\*\fldinst <instructions>} {\fldrslt <result>}}. Word
+  # tolerates its absence for simple fields like PAGE but rejects the
+  # document for complex fields like TOC. An empty result is valid;
+  # Word recalculates it when the field is updated.
+  sprintf("%s{\\field{\\*\\fldinst %s}{\\fldrslt }}", rtf_fp, x$field)
 }
 
 #' @export
@@ -119,7 +362,7 @@ to_rtf.run_pagebreak <- function(x, ...) {
 }
 #' @export
 to_rtf.run_columnbreak <- function(x, ...) {
-  "\\column"
+  "\\column "
 }
 #' @export
 to_rtf.run_linebreak <- function(x, ...) {
@@ -164,7 +407,10 @@ to_rtf.run_autonum <- function(x, ...) {
 
   if (x$tnd > 0) {
     z <- paste0(
-      to_rtf(run_word_field(field = paste0("STYLEREF ", x$tnd, " \\r"), prop = x$pr)),
+      to_rtf(run_word_field(
+        field = paste0("STYLEREF ", x$tnd, " \\r"),
+        prop = x$pr
+      )),
       to_rtf(ftext(x$tns, prop = x$pr))
     )
     sf_str <- paste0(z, sf_str)
@@ -189,7 +435,10 @@ to_rtf.run_autonum <- function(x, ...) {
 
 #' @export
 to_rtf.run_reference <- function(x, ...) {
-  out <- to_rtf(run_word_field(field = paste0(" REF ", x$id, " \\\\h "), prop = x$pr))
+  out <- to_rtf(run_word_field(
+    field = paste0(" REF ", x$id, " \\\\h "),
+    prop = x$pr
+  ))
   out
 }
 
@@ -197,7 +446,13 @@ to_rtf.run_reference <- function(x, ...) {
 
 #' @export
 to_rtf.block_section <- function(x, ...) {
-  paste0("\\sect", to_rtf(x$property))
+  # API convention: block_section() configures the section that
+  # *follows* (content added after it). In RTF that maps to
+  # \sect (close previous section) then the property keywords,
+  # which apply to the newly opened section. \sectd resets section
+  # properties to defaults so that a prop_section() without columns
+  # does not inherit \cols2 from a previous column section.
+  paste0("\\sect\\sectd", to_rtf(x$property))
 }
 
 #' @export
@@ -235,10 +490,18 @@ to_rtf.prop_section <- function(x, ...) {
     hfr_str <- paste0(str_h, str_f)
   } else if ("evenodd" %in% hfr_type) {
     extra_rtf <- "\\facingp"
-    if (!is.null(x$header_default)) str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
-    if (!is.null(x$header_even)) str_h_even <- paste0("{\\headerr ", to_rtf(x$header_even), "}")
-    if (!is.null(x$footer_default)) str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
-    if (!is.null(x$footer_even)) str_f_even <- paste0("{\\footerr ", to_rtf(x$footer_even), "}")
+    if (!is.null(x$header_default)) {
+      str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
+    }
+    if (!is.null(x$header_even)) {
+      str_h_even <- paste0("{\\headerr ", to_rtf(x$header_even), "}")
+    }
+    if (!is.null(x$footer_default)) {
+      str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
+    }
+    if (!is.null(x$footer_even)) {
+      str_f_even <- paste0("{\\footerr ", to_rtf(x$footer_even), "}")
+    }
     hfr_str <- paste0(
       str_h,
       str_h_even,
@@ -247,12 +510,24 @@ to_rtf.prop_section <- function(x, ...) {
     )
   } else if ("evenoddfirst" %in% hfr_type) {
     extra_rtf <- "\\facingp\\titlepg"
-    if (!is.null(x$header_default)) str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
-    if (!is.null(x$header_even)) str_h_even <- paste0("{\\headerr ", to_rtf(x$header_even), "}")
-    if (!is.null(x$header_first)) str_h_first <- paste0("{\\headerf ", to_rtf(x$header_first), "}")
-    if (!is.null(x$footer_default)) str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
-    if (!is.null(x$footer_even)) str_f_even <- paste0("{\\footerr ", to_rtf(x$footer_even), "}")
-    if (!is.null(x$footer_first)) str_f_first <- paste0("{\\footerf ", to_rtf(x$footer_first), "}")
+    if (!is.null(x$header_default)) {
+      str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
+    }
+    if (!is.null(x$header_even)) {
+      str_h_even <- paste0("{\\headerr ", to_rtf(x$header_even), "}")
+    }
+    if (!is.null(x$header_first)) {
+      str_h_first <- paste0("{\\headerf ", to_rtf(x$header_first), "}")
+    }
+    if (!is.null(x$footer_default)) {
+      str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
+    }
+    if (!is.null(x$footer_even)) {
+      str_f_even <- paste0("{\\footerr ", to_rtf(x$footer_even), "}")
+    }
+    if (!is.null(x$footer_first)) {
+      str_f_first <- paste0("{\\footerf ", to_rtf(x$footer_first), "}")
+    }
     hfr_str <- paste0(
       str_h,
       str_h_even,
@@ -263,10 +538,18 @@ to_rtf.prop_section <- function(x, ...) {
     )
   } else {
     extra_rtf <- "\\titlepg"
-    if (!is.null(x$header_default)) str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
-    if (!is.null(x$header_first)) str_h_first <- paste0("{\\headerf ", to_rtf(x$header_first), "}")
-    if (!is.null(x$footer_default)) str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
-    if (!is.null(x$footer_first)) str_f_first <- paste0("{\\footerf ", to_rtf(x$footer_first), "}")
+    if (!is.null(x$header_default)) {
+      str_h <- paste0("{\\headerl ", to_rtf(x$header_default), "}")
+    }
+    if (!is.null(x$header_first)) {
+      str_h_first <- paste0("{\\headerf ", to_rtf(x$header_first), "}")
+    }
+    if (!is.null(x$footer_default)) {
+      str_f <- paste0("{\\footerl ", to_rtf(x$footer_default), "}")
+    }
+    if (!is.null(x$footer_first)) {
+      str_f_first <- paste0("{\\footerf ", to_rtf(x$footer_first), "}")
+    }
     hfr_str <- paste0(
       str_h,
       str_h_first,
@@ -323,7 +606,6 @@ to_rtf.page_mar <- function(x, ...) {
 
 #' @export
 to_rtf.page_size <- function(x, ...) {
-
   if (!is.null(x$width) && !is.null(x$height)) {
     out <- sprintf(
       "\\pghsxn%.0f\\pgwsxn%.0f%s",
@@ -343,7 +625,6 @@ to_rtf.page_size <- function(x, ...) {
     }
   }
 
-
   out
 }
 
@@ -352,16 +633,35 @@ to_rtf.section_columns <- function(x, ...) {
   widths <- x$widths * 20 * 72
   space <- x$space * 20 * 72
 
-  columns_str <- sprintf("\\colw%.0f\\colsx%.0f", widths[length(widths)], space)
+  # RTF needs one <\colno N \colw N> per column for unequal widths.
+  # \colsr (per-column right space) duplicates the global \colsx when
+  # spaces are uniform, but matches what Word/LibreOffice emit and
+  # leaves room for per-column spacing later. The last column has no
+  # trailing \colsr.
+  columns_str_all_but_last <- sprintf(
+    "\\colno%.0f\\colw%.0f\\colsr%.0f",
+    seq(length(widths) - 1),
+    widths[-length(widths)],
+    rep(space, length(widths) - 1)
+  )
+  columns_str_last <- sprintf(
+    "\\colno%.0f\\colw%.0f",
+    length(widths),
+    widths[length(widths)]
+  )
+  columns_str <- c(columns_str_all_but_last, columns_str_last)
 
   linebetcol <- ""
-  if (x$sep) linebetcol <- "\\linebetcol"
+  if (x$sep) {
+    linebetcol <- "\\linebetcol"
+  }
 
   sprintf(
-    "\\cols%.0f%s%s",
+    "\\cols%.0f\\colsx%.0f%s%s",
     length(widths),
+    space,
     linebetcol,
-    columns_str
+    paste(columns_str, collapse = "")
   )
 }
 
@@ -386,7 +686,7 @@ color_table <- function(colors) {
   )
 }
 
-ppr_rtf <- function(x) {
+ppr_rtf <- function(x, include_pard = TRUE) {
   text_align_ <- ""
   if (!is.na(x$text.align)) {
     if ("left" %in% x$text.align) {
@@ -411,16 +711,28 @@ ppr_rtf <- function(x) {
   }
   leftright_padding <- ""
   if (!is.na(x$padding.left) && !is.na(x$padding.right)) {
+    hang <- x$hanging %||% NA_real_
+    first <- x$first_line %||% NA_real_
+    if (!is.na(hang) && hang > 0) {
+      fi <- sprintf("\\fi-%.0f", hang * 20)
+    } else if (!is.na(first) && first > 0) {
+      fi <- sprintf("\\fi%.0f", first * 20)
+    } else {
+      fi <- "\\fi0"
+    }
     leftright_padding <- sprintf(
-      "\\fi0\\li%.0f\\ri%.0f",
-      x$padding.left * 20, x$padding.right * 20
+      "%s\\li%.0f\\ri%.0f",
+      fi,
+      x$padding.left * 20,
+      x$padding.right * 20
     )
   }
   topbot_spacing <- ""
   if (!is.na(x$padding.bottom) && !is.na(x$padding.top)) {
     topbot_spacing <- sprintf(
       "\\sb%.0f\\sa%.0f",
-      x$padding.bottom * 20, x$padding.top * 20
+      x$padding.bottom * 20,
+      x$padding.top * 20
     )
   }
 
@@ -438,7 +750,8 @@ ppr_rtf <- function(x) {
     leftright_padding
   )
   if (nchar(out) > 0) {
-    out <- paste0("\\pard", out, " ")
+    prefix <- if (isTRUE(include_pard)) "\\pard" else ""
+    out <- paste0(prefix, out, " ")
   }
   out
 }
@@ -449,7 +762,6 @@ rpr_rtf <- function(x) {
   if (!is.na(x$font.family)) {
     out <- paste0(out, "%font:", x$font.family, "%")
   }
-
 
   if (!is.na(x$italic)) {
     if (x$italic) {
@@ -465,6 +777,11 @@ rpr_rtf <- function(x) {
   if (!is.na(x$underlined)) {
     if (x$underlined) {
       out <- paste0(out, "\\ul")
+    }
+  }
+  if (!is.na(x$strike)) {
+    if (x$strike) {
+      out <- paste0(out, "\\strike")
     }
   }
 
@@ -514,8 +831,11 @@ border_rtf <- function(x, side) {
   color_ <- paste0("%ftlinecolor:", x$color, "%")
 
   paste0(
-    "\\clbrdr", substr(side, 1, 1), style_,
-    width_, color_
+    "\\clbrdr",
+    substr(side, 1, 1),
+    style_,
+    width_,
+    color_
   )
 }
 
@@ -555,10 +875,15 @@ tcpr_rtf <- function(x) {
   }
 
   paste0(
-    bb, bt, bl, br,
+    bb,
+    bt,
+    bl,
+    br,
     text.direction,
-    rowspan, colspan,
-    vertical.align, background.color
+    rowspan,
+    colspan,
+    vertical.align,
+    background.color
   )
 }
 
@@ -569,25 +894,57 @@ tcpr_rtf <- function(x) {
 #' RTF document which can then receive contents with
 #' the [rtf_add()] function and be written to a file with
 #' the `print(x, target="doc.rtf")` function.
-#' @param def_sec a [block_section] object used to defined default section.
+#' @param def_sec a [prop_section] object used to define the default section
+#' (page size, margins, header / footer, columns) applied to content added
+#' before any explicit [block_section()].
 #' @param normal_par an object generated by [fp_par()]
 #' @param normal_chunk an object generated by [fp_text()]
+#'
+#' @section Built-in styles:
+#' `rtf_doc()` registers four paragraph styles: `"Normal"` (built from
+#' `normal_par` / `normal_chunk`) and `"heading 1"` / `"heading 2"` /
+#' `"heading 3"` (bold, dark blue shades, with outline levels so the
+#' paragraphs feed Word's navigation pane and TOC field). The heading
+#' names mirror Word's own convention so a script that adds paragraphs
+#' with `style = "heading 1"` works identically against Word output
+#' (`body_add_par(..., style = "heading 1")`) and RTF output
+#' (`rtf_add(..., style = "heading 1")`).
+#'
+#' To override a built-in look (size, color, spacing, outline level),
+#' call [rtf_set_paragraph_style()] after `rtf_doc()` with the same
+#' `style_id`.
+#'
+#' ```r
+#' doc <- rtf_doc()
+#' doc <- rtf_set_paragraph_style(
+#'   doc,
+#'   style_id = "heading 1",
+#'   fp_p = fp_par(text.align = "center", padding = 12),
+#'   fp_t = fp_text_lite(bold = TRUE, font.size = 24, color = "#000000"),
+#'   outline_level = 1L
+#' )
+#' ```
+#'
+#' Use [rtf_styles_info()] to inspect the current style table.
 #' @examples
 #' rtf_doc(normal_par = fp_par(padding = 3))
-#' @seealso [read_docx()], [print.rtf()], [rtf_add()]
+#' @seealso [read_docx()], [print.rtf()], [rtf_add()]. See `?rtf_add` for a
+#' complete multi-section example exercising `def_sec`, headers / footers
+#' and several `block_section()` calls.
 #' @return an object of class `rtf` representing an
 #' empty RTF document.
-rtf_doc <- function(def_sec = prop_section(),
-                    normal_par = fp_par(),
-                    normal_chunk = fp_text(font.family = "Arial", font.size = 11)) {
+rtf_doc <- function(
+  def_sec = prop_section(),
+  normal_par = fp_par(),
+  normal_chunk = fp_text(font.family = "Arial", font.size = 11)
+) {
   styles <- data.frame(
+    style_id = "Normal",
     style_name = "Normal",
-    style_id = 1L,
     type = "paragraph",
-    rtf = rtf_par_style(
-      fp_p = normal_par,
-      fp_t = normal_chunk
-    ),
+    rtf_index = 1L,
+    based_on = NA_character_,
+    rtf = rtf_par_style(fp_p = normal_par, fp_t = normal_chunk),
     stringsAsFactors = FALSE
   )
 
@@ -599,6 +956,28 @@ rtf_doc <- function(def_sec = prop_section(),
     normal_chunk = normal_chunk
   )
   class(x) <- "rtf"
+
+  # Built-in heading styles. Names align with Word's "heading 1".."heading 3"
+  # convention. outline_level wires the style into Word's navigation pane
+  # and TOC field.
+  x <- rtf_set_paragraph_style(
+    x, style_id = "heading 1", style_name = "Heading 1",
+    fp_p = fp_par(padding.top = 12, padding.bottom = 6),
+    fp_t = fp_text_lite(bold = TRUE, font.size = 18, color = "#1F4E79"),
+    outline_level = 1L
+  )
+  x <- rtf_set_paragraph_style(
+    x, style_id = "heading 2", style_name = "Heading 2",
+    fp_p = fp_par(padding.top = 8, padding.bottom = 4),
+    fp_t = fp_text_lite(bold = TRUE, font.size = 14, color = "#2E75B6"),
+    outline_level = 2L
+  )
+  x <- rtf_set_paragraph_style(
+    x, style_id = "heading 3", style_name = "Heading 3",
+    fp_p = fp_par(padding.top = 6, padding.bottom = 3),
+    fp_t = fp_text_lite(bold = TRUE, font.size = 12, color = "#5B9BD5"),
+    outline_level = 3L
+  )
   x
 }
 
@@ -607,6 +986,33 @@ rtf_doc <- function(def_sec = prop_section(),
 #' @description This function add 'officer' objects into an RTF document.
 #' Values are added as new paragraphs. See section 'Methods (by class)'
 #' that list supported objects.
+#'
+#' @section Section model in RTF:
+#' A `block_section` added with `rtf_add()` applies to the content that
+#' **follows** the call: it opens a new section whose layout (orientation,
+#' columns, margins, headers / footers) is inherited by every paragraph,
+#' table or graphic added afterwards, until the next `block_section` (or
+#' the end of the document).
+#'
+#' Typical pattern: declare the section, then add the content.
+#'
+#' ```r
+#' doc <- rtf_doc() |>
+#'   rtf_add(block_section(prop_section(
+#'     page_size = page_size(orient = "landscape")
+#'   ))) |>
+#'   rtf_add(fpar("This paragraph is in landscape orientation."))
+#' ```
+#'
+#' The first section of the document is configured via the `def_sec`
+#' argument of [rtf_doc()] (a [prop_section] object, not a
+#' `block_section`). It applies to every element added before the first
+#' `rtf_add(block_section(...))` call.
+#'
+#' The Word output uses the opposite model: `body_end_block_section()`
+#' applies to the content that *precedes* the call. See
+#' [body_end_block_section()].
+#'
 #' @param x rtf object, created by [rtf_doc()].
 #' @param value object to add in the document. Supported objects
 #' are vectors, graphics, block of formatted paragraphs. Use package
@@ -614,55 +1020,8 @@ rtf_doc <- function(def_sec = prop_section(),
 #' @param ... further arguments passed to or from other methods. When
 #' adding a `ggplot` object or [plot_instr], these arguments will be used
 #' by png function. See section 'Methods' to see what arguments can be used.
-#' @examples
-#' library(officer)
-#'
-#' def_text <- fp_text_lite(color = "#006699", bold = TRUE)
-#' center_par <- fp_par(text.align = "center", padding = 3)
-#'
-#' doc <- rtf_doc(
-#'   normal_par = fp_par(line_spacing = 1.4, padding = 3)
-#' )
-#'
-#' doc <- rtf_add(
-#'   x = doc,
-#'   value = fpar(
-#'     ftext("how are you?", prop = def_text),
-#'     fp_p = fp_par(text.align = "center")
-#'   )
-#' )
-#'
-#' a_paragraph <- fpar(
-#'   ftext("Here is a date: ", prop = def_text),
-#'   run_word_field(field = "Date \\@ \"MMMM d yyyy\""),
-#'   fp_p = center_par
-#' )
-#' doc <- rtf_add(
-#'   x = doc,
-#'   value = block_list(
-#'     a_paragraph,
-#'     a_paragraph,
-#'     a_paragraph
-#'   )
-#' )
-#'
-#' if (require("ggplot2")) {
-#'   gg <- gg_plot <- ggplot(data = iris) +
-#'     geom_point(mapping = aes(Sepal.Length, Petal.Length))
-#'   doc <- rtf_add(doc, gg,
-#'     width = 3, height = 4,
-#'     ppr = center_par
-#'   )
-#' }
-#' anyplot <- plot_instr(code = {
-#'   barplot(1:5, col = 2:6)
-#' })
-#' doc <- rtf_add(doc, anyplot,
-#'   width = 5, height = 4,
-#'   ppr = center_par
-#' )
-#'
-#' print(doc, target = tempfile(fileext = ".rtf"))
+#' @example inst/examples/example_rtf_add.R
+#' @example inst/examples/example_rtf_sections.R
 rtf_add <- function(x, value, ...) {
   UseMethod("rtf_add", value)
 }
@@ -675,13 +1034,75 @@ rtf_add.block_section <- function(x, value, ...) {
   x
 }
 
+# Walk the based_on chain of a style, returning the style ids in root-to-leaf
+# order. `parents` is a named vector that maps each style_id to its parent
+# style_id (or NA for roots), used as a constant-time dictionary. `visited`
+# carries ids already traversed, so the walk terminates when a cycle exists
+# (a parent that loops back to a descendant).
+walk_based_on_chain <- function(style_id, parents, visited = character()) {
+  if (is.na(style_id) || style_id %in% visited) {
+    return(character())
+  }
+  c(
+    walk_based_on_chain(parents[[style_id]], parents, c(visited, style_id)),
+    style_id
+  )
+}
+
+# Resolve a user-facing style id to (rtf_index, rtf_props). Concatenates the
+# fragments of the based_on chain so the returned props string fully describes
+# the style (the additive model the RTF spec requires for styled paragraphs).
+resolve_rtf_style <- function(x, style) {
+  if (is.null(style)) {
+    return(NULL)
+  }
+  if (!is.character(style) || length(style) != 1L) {
+    stop("`style` must be NULL or a single string matching a style_id.")
+  }
+  idx <- match(style, x$styles$style_id)
+  if (is.na(idx)) {
+    stop(
+      "style ", shQuote(style),
+      " is not registered. Use rtf_styles_info() to list available styles ",
+      "or rtf_set_paragraph_style() to add one."
+    )
+  }
+  # Walk the based_on chain from root to leaf. styles$rtf is stored
+  # without leading \pard (see rtf_set_paragraph_style), so we can just
+  # concatenate the chain in order: parent props come first, child
+  # props win on conflicts under the RTF additive model.
+  parents <- setNames(x$styles$based_on, x$styles$style_id)
+  chain <- walk_based_on_chain(style, parents)
+  rtf_by_id <- setNames(x$styles$rtf, x$styles$style_id)
+  props <- paste0(rtf_by_id[chain], collapse = "")
+  list(index = x$styles$rtf_index[idx], props = props)
+}
+
+apply_rtf_style <- function(value, style) {
+  if (is.null(style)) {
+    return(value)
+  }
+  attr(value, "rtf_style_index") <- style$index
+  attr(value, "rtf_style_props") <- style$props
+  value
+}
+
 #' @export
 #' @describeIn rtf_add add characters as new paragraphs
-rtf_add.character <- function(x, value, ...) {
+#' @param style style identifier (`style_id`) of a paragraph style registered
+#' on the document. Defaults to `NULL` (use the document's normal style). See
+#' [rtf_set_paragraph_style()] and [rtf_styles_info()].
+rtf_add.character <- function(x, value, style = NULL, ...) {
+  styled <- resolve_rtf_style(x, style)
+  chunk_prop <- if (is.null(styled)) x$normal_chunk else NULL
+  par_prop <- if (is.null(styled)) x$normal_par else fp_par()
   values <- lapply(
     X = str_encode_to_rtf(value),
     function(z) {
-      fpar(ftext(z, prop = x$normal_chunk), fp_p = x$normal_par)
+      apply_rtf_style(
+        fpar(ftext(z, prop = chunk_prop), fp_p = par_prop),
+        styled
+      )
     }
   )
 
@@ -691,11 +1112,17 @@ rtf_add.character <- function(x, value, ...) {
 
 #' @export
 #' @describeIn rtf_add add a factor vector as new paragraphs
-rtf_add.factor <- function(x, value, ...) {
+rtf_add.factor <- function(x, value, style = NULL, ...) {
+  styled <- resolve_rtf_style(x, style)
+  chunk_prop <- if (is.null(styled)) x$normal_chunk else NULL
+  par_prop <- if (is.null(styled)) x$normal_par else fp_par()
   values <- lapply(
     X = str_encode_to_rtf(as.character(value)),
     function(z) {
-      fpar(ftext(z, prop = x$normal_chunk), fp_p = x$normal_par)
+      apply_rtf_style(
+        fpar(ftext(z, prop = chunk_prop), fp_p = par_prop),
+        styled
+      )
     }
   )
 
@@ -706,11 +1133,17 @@ rtf_add.factor <- function(x, value, ...) {
 #' @export
 #' @describeIn rtf_add add a double vector as new paragraphs
 #' @param formatter function used to format the numerical values
-rtf_add.double <- function(x, value, formatter = formatC, ...) {
+rtf_add.double <- function(x, value, formatter = formatC, style = NULL, ...) {
+  styled <- resolve_rtf_style(x, style)
+  chunk_prop <- if (is.null(styled)) x$normal_chunk else NULL
+  par_prop <- if (is.null(styled)) x$normal_par else fp_par()
   values <- lapply(
     X = value,
     function(z) {
-      fpar(ftext(formatC(z), prop = x$normal_chunk), fp_p = x$normal_par)
+      apply_rtf_style(
+        fpar(ftext(formatC(z), prop = chunk_prop), fp_p = par_prop),
+        styled
+      )
     }
   )
 
@@ -720,15 +1153,28 @@ rtf_add.double <- function(x, value, formatter = formatC, ...) {
 
 #' @export
 #' @describeIn rtf_add add an [fpar()]
-rtf_add.fpar <- function(x, value, ...) {
-  x$content[[length(x$content) + 1]] <- value
+rtf_add.fpar <- function(x, value, style = NULL, ...) {
+  styled <- resolve_rtf_style(x, style)
+  x$content[[length(x$content) + 1]] <- apply_rtf_style(value, styled)
   x
 }
 
 #' @export
 #' @describeIn rtf_add add an [block_list()]
-rtf_add.block_list <- function(x, value, ...) {
-  x$content <- append(x$content, as.list(value))
+rtf_add.block_list <- function(x, value, style = NULL, ...) {
+  styled <- resolve_rtf_style(x, style)
+  items <- lapply(as.list(value), apply_rtf_style, style = styled)
+  x$content <- append(x$content, items)
+  x
+}
+
+#' @export
+#' @describeIn rtf_add add a [block_toc()] (table of contents).
+#' Word populates the TOC at open time from paragraphs styled with the
+#' built-in heading styles (which carry an outline level). LibreOffice
+#' will not render the TOC automatically.
+rtf_add.block_toc <- function(x, value, ...) {
+  x$content[[length(x$content) + 1]] <- value
   x
 }
 
@@ -740,13 +1186,31 @@ rtf_add.block_list <- function(x, value, ...) {
 #' @param res resolution of the png image in ppi
 #' @param scale Multiplicative scaling factor, same as in ggsave
 #' @param ppr [fp_par()] to apply to paragraph.
-rtf_add.gg <- function(x, value, width = 6, height = 5, res = 300, scale = 1, ppr = fp_par(text.align = "center"), ...) {
+rtf_add.gg <- function(
+  x,
+  value,
+  width = 6,
+  height = 5,
+  res = 300,
+  scale = 1,
+  ppr = fp_par(text.align = "center"),
+  ...
+) {
   if (!requireNamespace("ggplot2")) {
     stop("package ggplot2 is required to use this function")
   }
 
   file <- tempfile(fileext = ".png")
-  agg_png(filename = file, width = width, height = height, units = "in", res = res, scaling = scale, background = "transparent", ...)
+  agg_png(
+    filename = file,
+    width = width,
+    height = height,
+    units = "in",
+    res = res,
+    scaling = scale,
+    background = "transparent",
+    ...
+  )
   tryCatch(
     {
       print(value)
@@ -757,7 +1221,12 @@ rtf_add.gg <- function(x, value, width = 6, height = 5, res = 300, scale = 1, pp
   )
 
   value <- fpar(
-    external_img(src = file, width = width, height = height, guess_size = FALSE),
+    external_img(
+      src = file,
+      width = width,
+      height = height,
+      guess_size = FALSE
+    ),
     fp_p = ppr
   )
 
@@ -766,9 +1235,27 @@ rtf_add.gg <- function(x, value, width = 6, height = 5, res = 300, scale = 1, pp
 }
 #' @export
 #' @describeIn rtf_add add a [plot_instr()] object
-rtf_add.plot_instr <- function(x, value, width = 6, height = 5, res = 300, scale = 1, ppr = fp_par(text.align = "center"), ...) {
+rtf_add.plot_instr <- function(
+  x,
+  value,
+  width = 6,
+  height = 5,
+  res = 300,
+  scale = 1,
+  ppr = fp_par(text.align = "center"),
+  ...
+) {
   file <- tempfile(fileext = ".png")
-  agg_png(filename = file, width = width, height = height, units = "in", res = res, scaling = scale, background = "transparent", ...)
+  agg_png(
+    filename = file,
+    width = width,
+    height = height,
+    units = "in",
+    res = res,
+    scaling = scale,
+    background = "transparent",
+    ...
+  )
   tryCatch(
     {
       eval(value$code)
@@ -779,7 +1266,12 @@ rtf_add.plot_instr <- function(x, value, width = 6, height = 5, res = 300, scale
   )
 
   value <- fpar(
-    external_img(src = file, width = width, height = height, guess_size = FALSE),
+    external_img(
+      src = file,
+      width = width,
+      height = height,
+      guess_size = FALSE
+    ),
     fp_p = ppr
   )
 
@@ -787,7 +1279,7 @@ rtf_add.plot_instr <- function(x, value, width = 6, height = 5, res = 300, scale
   x
 }
 
-#' @title Write an 'RTF' document to a file
+#' @title Write an 'RTF' File
 #' @description Write the RTF object and its content to a file.
 #' @param x an 'rtf' object created with [rtf_doc()]
 #' @param target path to the RTF file to write
@@ -804,9 +1296,33 @@ print.rtf <- function(x, target = NULL, ...) {
     return(invisible())
   }
 
-  rtf_content <- sapply(x$content, to_rtf)
+  # Walk content elements, emit one RTF chunk per element and interleave
+  # per-section header/footer groups so that each section carries its own
+  # {\header}{\footer}. The default section's hfr applies to content added
+  # before the first block_section; each subsequent block_section opens a
+  # new section whose hfr is emitted just before the next \sect (or at
+  # end of document for the last section). hfr groups must precede the
+  # \sect that closes the section they describe (RTF spec).
+  default_sect <- to_rtf(x$default_section)
+  rtf_content <- character()
+  current_hfr <- attr(default_sect, "hfr")
+  for (elem in x$content) {
+    if (inherits(elem, "block_section")) {
+      props <- to_rtf(elem$property)
+      rtf_content <- c(
+        rtf_content,
+        current_hfr,
+        paste0("\\sect\\sectd", props)
+      )
+      current_hfr <- attr(props, "hfr")
+    } else {
+      rtf_content <- c(rtf_content, to_rtf(elem))
+    }
+  }
+  trailing_hfr <- current_hfr
+
   rtf_ss <- rtf_stylesheet(x)
-  txt_to_scan <- c(rtf_content, rtf_ss)
+  txt_to_scan <- c(rtf_content, rtf_ss, trailing_hfr)
   m <- gregexec(pattern = "%font:[a-zA-Z ]+%", text = txt_to_scan)
   fonts <- unique(unlist(regmatches(txt_to_scan, m)))
   fonts <- gsub("(^%font:|%$)", "", fonts)
@@ -814,21 +1330,52 @@ print.rtf <- function(x, target = NULL, ...) {
 
   m <- gregexec(pattern = "\\%ftcolor\\:[a-zA-Z #0-9]+\\%", text = txt_to_scan)
   ftcolor <- unlist(regmatches(txt_to_scan, m))
-  m <- gregexec(pattern = "\\%ftshading\\:[a-zA-Z #0-9]+\\%", text = txt_to_scan)
+  m <- gregexec(
+    pattern = "\\%ftshading\\:[a-zA-Z #0-9]+\\%",
+    text = txt_to_scan
+  )
   ftshading <- unlist(regmatches(txt_to_scan, m))
-  m <- gregexec(pattern = "\\%ftlinecolor\\:[a-zA-Z #0-9]+\\%", text = txt_to_scan)
+  m <- gregexec(
+    pattern = "\\%ftlinecolor\\:[a-zA-Z #0-9]+\\%",
+    text = txt_to_scan
+  )
   ftlinecolor <- unlist(regmatches(txt_to_scan, m))
-  m <- gregexec(pattern = "\\%ftbgcolor\\:[a-zA-Z #0-9]+\\%", text = txt_to_scan)
+  m <- gregexec(
+    pattern = "\\%ftbgcolor\\:[a-zA-Z #0-9]+\\%",
+    text = txt_to_scan
+  )
   ftbgcolor <- unlist(regmatches(txt_to_scan, m))
 
   supported_highlight <- c(
-    "black", "blue", "cyan", "green", "magenta", "red",
-    "yellow", "darkblue", "darkcyan", "darkgreen",
-    "darkmagenta", "darkred", "#8B8000", "darkgrey", "lightgray"
+    "black",
+    "blue",
+    "cyan",
+    "green",
+    "magenta",
+    "red",
+    "yellow",
+    "darkblue",
+    "darkcyan",
+    "darkgreen",
+    "darkmagenta",
+    "darkred",
+    "#8B8000",
+    "darkgrey",
+    "lightgray"
   )
 
-  colors <- unique(c(ftcolor, ftshading, ftlinecolor, ftbgcolor, supported_highlight))
-  colors <- gsub("(^%(ftcolor|ftshading|ftlinecolor|ftbgcolor):|%$)", "", colors)
+  colors <- unique(c(
+    ftcolor,
+    ftshading,
+    ftlinecolor,
+    ftbgcolor,
+    supported_highlight
+  ))
+  colors <- gsub(
+    "(^%(ftcolor|ftshading|ftlinecolor|ftbgcolor):|%$)",
+    "",
+    colors
+  )
   color_table <- color_table(colors = colors)
 
   header <- c(
@@ -837,10 +1384,13 @@ print.rtf <- function(x, target = NULL, ...) {
     rtfize_color_table(color_table)
   )
 
-  default_sect <- to_rtf(x$default_section)
   all_strings <- c(
-    header, rtf_ss, default_sect, rtf_content,
-    attr(default_sect, "hfr"), "}"
+    header,
+    rtf_ss,
+    default_sect,
+    rtf_content,
+    trailing_hfr,
+    "}"
   )
 
   all_strings <- fix_font_ref(all_strings, family_table)
@@ -877,7 +1427,9 @@ str_encode_to_rtf <- function(z) {
       charv[is_unic2b] <- paste0("\\uc1\\u", intv[is_unic2b], "?")
       charv[is_unic4b] <- paste0("\\uc1\\u", intv[is_unic4b] - 65536, "?")
       paste0(charv, collapse = "")
-    }, char_list, int_list,
+    },
+    char_list,
+    int_list,
     SIMPLIFY = TRUE
   )
   as.character(rtf_strings)
@@ -908,7 +1460,9 @@ rtf_color_code <- function(color) {
   color <- as.vector(col2rgb(color, alpha = FALSE))
   sprintf(
     "\\red%.0f\\green%.0f\\blue%.0f;",
-    color[1], color[2], color[3]
+    color[1],
+    color[2],
+    color[3]
   )
 }
 
@@ -924,7 +1478,8 @@ rtf_fp_tab <- function(x) {
 
   sprintf(
     "\\tx%.0f%s",
-    inch_to_tweep(x$pos), tab_style
+    inch_to_tweep(x$pos),
+    tab_style
   )
 }
 
@@ -964,9 +1519,21 @@ fix_bg_color <- function(x, color_tbl) {
 }
 fix_font_shading <- function(x, color_tbl) {
   supported_highlight <- c(
-    "black", "blue", "cyan", "green", "magenta", "red",
-    "yellow", "darkblue", "darkcyan", "darkgreen",
-    "darkmagenta", "darkred", "#8B8000", "darkgrey", "lightgray"
+    "black",
+    "blue",
+    "cyan",
+    "green",
+    "magenta",
+    "red",
+    "yellow",
+    "darkblue",
+    "darkcyan",
+    "darkgreen",
+    "darkmagenta",
+    "darkred",
+    "#8B8000",
+    "darkgrey",
+    "lightgray"
   )
 
   supported_highlight <-
@@ -981,8 +1548,16 @@ fix_font_shading <- function(x, color_tbl) {
     matches <- Filter(function(x) x > -1, m)
     if (length(matches) > 0) {
       used_shading <- unique(unlist(regmatches(x, m)))
-      if (!used_shading %in% c(supported_highlight$match_ftshading, "%ftshading:transparent%")) {
-        stop("chunk highlight color (", used_shading, ") in RTF can only have values: ", paste0(shQuote(supported_highlight$colors), collapse = ", "))
+      if (
+        !used_shading %in%
+          c(supported_highlight$match_ftshading, "%ftshading:transparent%")
+      ) {
+        stop(
+          "chunk highlight color (",
+          used_shading,
+          ") in RTF can only have values: ",
+          paste0(shQuote(supported_highlight$colors), collapse = ", ")
+        )
       }
     }
 
@@ -992,48 +1567,144 @@ fix_font_shading <- function(x, color_tbl) {
   x
 }
 
-rtf_par_style <- function(fp_p = fp_par(), fp_t = NULL) {
+rtf_par_style <- function(fp_p = fp_par(), fp_t = NULL, include_pard = FALSE) {
   if (!is.null(fp_t)) {
     fp_t_rtf <- rpr_rtf(fp_t)
   } else {
     fp_t_rtf <- ""
   }
 
-  paste0(ppr_rtf(fp_p), fp_t_rtf)
+  paste0(ppr_rtf(fp_p, include_pard = include_pard), fp_t_rtf)
 }
 
-# Not used in {officer}
-rtf_set_paragraph_style <- function(x, style_name, fp_p = fp_par(), fp_t = NULL) {
-  index <- which(x$styles$style_name %in% style_name)
-  style_id <- if (length(index) < 1) {
-    style_id <- nrow(x$styles) + 1L
-  } else {
-    style_id <- index
+#' @export
+#' @title Add or replace a paragraph style in an RTF document
+#' @description Add or replace a paragraph style in the document stylesheet
+#' so that subsequent paragraphs can reference it via the `style` argument of
+#' [rtf_add()]. The function mirrors [docx_set_paragraph_style()] for Word.
+#' @param x an rtf object created by [rtf_doc()].
+#' @param style_id user-facing identifier used as the key when a paragraph
+#' references the style (`rtf_add(..., style = style_id)`).
+#' @param style_name display label of the style as it appears in Word's style
+#' menu. Defaults to `style_id`.
+#' @param base_on the `style_id` of the parent style. Properties not defined
+#' in the new style are inherited from the parent. Defaults to `"Normal"`.
+#' @param fp_p paragraph formatting properties, see [fp_par()].
+#' @param fp_t text formatting properties, see [fp_text()]. If `NULL` the
+#' paragraph inherits text properties from the parent style.
+#' @param outline_level integer between 1 and 9, or `NULL`. Sets the outline
+#' level (`\\outlinelevel`) so paragraphs using the style feed Word's
+#' navigation pane and TOC field. Level 1 is the topmost (used by Heading 1).
+#' @return the rtf object with the style added or updated.
+#' @seealso [docx_set_paragraph_style()], [rtf_doc()], [rtf_add()]
+#' @examples
+#' doc <- rtf_doc()
+#' doc <- rtf_set_paragraph_style(
+#'   doc,
+#'   style_id = "Callout",
+#'   fp_p = fp_par(text.align = "center", padding = 6),
+#'   fp_t = fp_text_lite(bold = TRUE, color = "#1F4E79")
+#' )
+#' doc <- rtf_add(doc, "Heads up", style = "Callout")
+#' print(doc, target = tempfile(fileext = ".rtf"))
+rtf_set_paragraph_style <- function(
+  x,
+  style_id,
+  style_name = style_id,
+  base_on = "Normal",
+  fp_p = fp_par(),
+  fp_t = NULL,
+  outline_level = NULL
+) {
+  stopifnot(is.character(style_id), length(style_id) == 1L, nzchar(style_id))
+  stopifnot(is.character(style_name), length(style_name) == 1L)
+  if (!is.null(base_on)) {
+    if (!base_on %in% x$styles$style_id) {
+      stop(
+        "base_on = ", shQuote(base_on),
+        " does not match any existing style_id. Existing: ",
+        paste0(shQuote(x$styles$style_id), collapse = ", ")
+      )
+    }
   }
-  new_style <- data.frame(
-    style_name = style_name,
-    style_id = style_id,
-    type = "paragraph",
-    rtf = rtf_par_style(fp_p = fp_p, fp_t = fp_t),
-    stringsAsFactors = FALSE
-  )
-
-  if (length(index) < 1) {
-    x$styles <- rbind(x$styles, new_style)
-  } else {
-    x$styles[index, "rtf"] <- new_style$rtf
+  outline_str <- ""
+  if (!is.null(outline_level)) {
+    stopifnot(
+      is.numeric(outline_level), length(outline_level) == 1L,
+      outline_level >= 1L, outline_level <= 9L
+    )
+    # RTF / OOXML outline levels are 0-indexed; Heading 1 → \outlinelevel0.
+    outline_str <- sprintf("\\outlinelevel%.0f", as.integer(outline_level) - 1L)
   }
+  # Place \outlinelevelN inside the paragraph properties section, before
+  # run-level properties, otherwise some readers stop parsing the
+  # property list. include_pard = FALSE because \pard inside a style
+  # definition (or duplicated in a styled paragraph after \pard\plain)
+  # terminates the style's property list in Word's parser.
+  ppr <- ppr_rtf(fp_p, include_pard = FALSE)
+  rpr <- if (!is.null(fp_t)) rpr_rtf(fp_t) else ""
+  rtf_fragment <- paste0(ppr, outline_str, rpr)
 
+  idx <- which(x$styles$style_id == style_id)
+  if (length(idx) < 1L) {
+    rtf_index <- max(x$styles$rtf_index, 0L) + 1L
+    new_row <- data.frame(
+      style_id = style_id,
+      style_name = style_name,
+      type = "paragraph",
+      rtf_index = rtf_index,
+      based_on = if (is.null(base_on)) NA_character_ else base_on,
+      rtf = rtf_fragment,
+      stringsAsFactors = FALSE
+    )
+    x$styles <- rbind(x$styles, new_row)
+  } else {
+    x$styles[idx, "style_name"] <- style_name
+    x$styles[idx, "based_on"] <- if (is.null(base_on)) NA_character_ else base_on
+    x$styles[idx, "rtf"] <- rtf_fragment
+  }
   x
 }
 
+#' @export
+#' @title Read paragraph styles defined on an RTF document
+#' @description Return the data.frame of styles currently registered on
+#' the document. Useful for debugging or for checking which built-in
+#' styles are available before referencing them via `style = ...`.
+#' @param x an rtf object created by [rtf_doc()].
+#' @return a data.frame with one row per style.
+#' @seealso [rtf_set_paragraph_style()], [styles_info()]
+#' @examples
+#' rtf_styles_info(rtf_doc())
+rtf_styles_info <- function(x) {
+  stopifnot(inherits(x, "rtf"))
+  x$styles
+}
+
 rtf_stylesheet <- function(x) {
-  out <- character(nrow(x$styles))
-  for (i in seq_len(nrow(x$styles))) {
+  styles <- x$styles
+  out <- character(nrow(styles))
+  for (i in seq_len(nrow(styles))) {
+    based_on_str <- ""
+    if (!is.na(styles$based_on[i])) {
+      parent_idx <- styles$rtf_index[match(styles$based_on[i], styles$style_id)]
+      if (!is.na(parent_idx)) {
+        based_on_str <- sprintf("\\sbasedon%.0f", parent_idx)
+      }
+    }
+    # RTF spec canonical order in a paragraph style definition:
+    #   \sN <paragraph props> <character props> <metadata> Name;
+    # \sbasedon belongs to the metadata trailer; placing it right
+    # after \sN makes Word attribute the property keywords that
+    # follow to the parent style. The fragment in `styles$rtf` is
+    # already emitted without \pard (rtf_set_paragraph_style uses
+    # ppr_rtf(include_pard = FALSE)).
     out[i] <- sprintf(
-      "\n{\\f%.0f\\s%.0f%s %s;}",
-      i, i, x$styles$rtf[i],
-      x$styles$style_name[i]
+      "\n{\\s%.0f%s%s %s;}",
+      styles$rtf_index[i],
+      styles$rtf[i],
+      based_on_str,
+      styles$style_name[i]
     )
   }
   paste0(
@@ -1047,12 +1718,22 @@ rtf_stylesheet <- function(x) {
 # check for gregexec -----
 if (!"gregexec" %in% getNamespaceExports("base")) {
   # copied from R source, grep.R
-  gregexec <- function(pattern, text, ignore.case = FALSE, perl = FALSE,
-                       fixed = FALSE, useBytes = FALSE) {
-    if (is.factor(text) && length(levels(text)) < length(text)) {
+  gregexec <- function(
+    pattern,
+    text,
+    ignore.case = FALSE,
+    perl = FALSE,
+    fixed = FALSE,
+    useBytes = FALSE
+  ) {
+    if (is.factor(text) && nlevels(text) < length(text)) {
       out <- gregexec(
-        pattern, c(levels(text), NA_character_),
-        ignore.case, perl, fixed, useBytes
+        pattern,
+        c(levels(text), NA_character_),
+        ignore.case,
+        perl,
+        fixed,
+        useBytes
       )
       outna <- out[length(out)]
       out <- out[text]
@@ -1061,8 +1742,12 @@ if (!"gregexec" %in% getNamespaceExports("base")) {
     }
 
     dat <- gregexpr(
-      pattern = pattern, text = text, ignore.case = ignore.case,
-      fixed = fixed, useBytes = useBytes, perl = perl
+      pattern = pattern,
+      text = text,
+      ignore.case = ignore.case,
+      fixed = fixed,
+      useBytes = useBytes,
+      perl = perl
     )
     if (perl && !fixed) {
       ## Perl generates match data, so use that
@@ -1088,10 +1773,14 @@ if (!"gregexec" %in% getNamespaceExports("base")) {
       lapply(dat, process)
     } else {
       ## For TRE or fixed we must compute the match data ourselves
-      m1 <- lapply(regmatches(text, dat),
+      m1 <- lapply(
+        regmatches(text, dat),
         regexec,
-        pattern = pattern, ignore.case = ignore.case,
-        perl = perl, fixed = fixed, useBytes = useBytes
+        pattern = pattern,
+        ignore.case = ignore.case,
+        perl = perl,
+        fixed = fixed,
+        useBytes = useBytes
       )
       mlen <- lengths(m1)
       res <- vector("list", length(m1))

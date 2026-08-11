@@ -34,19 +34,23 @@ x <- layout_default(x, "Title Slide") # set default layout for `add_slide()`
 x <- add_slide(x) # uses default layout
 
 # use `...` to fill placeholders when adding slide
-x <- add_slide(x,
-  layout = "Two Content", `Title 1` = "A title",
-  dt = "Jan. 26, 2025", `body[2]` = "Body 2",
-  left = "Left side", `6` = "Footer"
+x <- add_slide(
+  x,
+  layout = "Two Content",
+  `Title 1` = "A title",
+  dt = "Jan. 26, 2025",
+  `body[2]` = "Body 2",
+  left = "Left side",
+  `6` = "Footer"
 )
 }
 \seealso{
 \code{\link[=print.rpptx]{print.rpptx()}}, \code{\link[=read_pptx]{read_pptx()}}, \code{\link[=layout_summary]{layout_summary()}}, \code{\link[=plot_layout_properties]{plot_layout_properties()}}, \code{\link[=ph_with]{ph_with()}}, \code{\link[=phs_with]{phs_with()}}, \code{\link[=layout_default]{layout_default()}}
 
 Other functions to manipulate slides:
-\code{\link{move_slide}()},
-\code{\link{on_slide}()},
-\code{\link{remove_slide}()},
-\code{\link{set_notes}()}
+\code{\link[=move_slide]{move_slide()}},
+\code{\link[=on_slide]{on_slide()}},
+\code{\link[=remove_slide]{remove_slide()}},
+\code{\link[=set_notes]{set_notes()}}
 }
 \concept{slide_manipulation}
